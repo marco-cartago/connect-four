@@ -16,6 +16,9 @@ class Board:
         self.column_limits = np.zeros(shape=ncol)
 
     def curr_player(self):
+        """
+        Returns the current playing player (haha)
+        """
         return MAXPLAYER if self.turn % 2 else MINPLAYER
 
     def is_terminal(self) -> int:
@@ -29,7 +32,8 @@ class Board:
         """
         for i in range(self.nrow - 3):
             for j in range(self.ncol - 3):
-                if self.board[i, j] == 0:   continue
+                if self.board[i, j] == 0:
+                    continue
                 if self.board[i, j] == MINPLAYER and self.board[i, j + 1] == MINPLAYER and self.board[i, j + 2] == MINPLAYER and self.board[i, j + 3] == MINPLAYER:
                     return MINPLAYER
                 elif self.board[i, j] == MINPLAYER and self.board[i + 1, j + 1] == MINPLAYER and self.board[i + 2, j + 2] == MINPLAYER and self.board[i + 3, j + 3] == MINPLAYER:
