@@ -6,12 +6,14 @@ MAXPLAYER: int = 1
 
 class Board:
 
-    def __init__(self, nrow: int = 7, ncol: int = 6):
-        self.nrow = nrow
-        self.ncol = ncol
+    def __init__(self, nrow: int = 6, ncol: int = 7):
 
-        self.turn = 0
-        self.history = []
+        self.nrow: int = nrow
+        self.ncol: int = ncol
+
+        self.turn: int = 0
+        self.has_ended: bool = False
+        self.history: list[int] = []
         self.board = np.zeros(shape=(nrow, ncol))
         self.column_limits = np.zeros(shape=ncol)
 
@@ -57,13 +59,31 @@ class Board:
         dropped
 
         For the starting state for example it would be [0, 1, 2, 3, 4, 5, 6]
-
         """
         if self.is_terminal():
             return None
         return np.where(self.column_limits <= self.nrow)[0]
 
     def make_move(self, move: int) -> None:
+        if self.is_terminal() != 0:
+            raise Exception("Game already ended")
+
+        if move not in self.legal_moves():
+            raise Exception("Illegal move :(")
+
+        curr_player = self.curr_player()
+        self.board[self.column_limits[move], move] = curr_player
+        self.column_limits[move] += 1
+        self.history.append(move)
+        self.turn += 1
+
+        # TODO
+        # To check if the game has ended and update accordingly the board state
+
+    def undo_move(self) -> None:
+        """
+        Undoes the last move made
+        """
         pass
 
     def minimax(self) -> tuple[int, float]:
