@@ -2,8 +2,8 @@ import numpy as np
 
 # Nuovo bellissimo commento
 
-MINPLAYER: int = 1
-MAXPLAYER: int = 2
+MINPLAYER: int = -1
+MAXPLAYER: int = 1
 
 
 class Board:
