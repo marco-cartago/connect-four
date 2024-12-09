@@ -2,8 +2,8 @@ import numpy as np
 
 # Nuovo bellissimo commento
 
-MINPLAYER: int = 1
-MAXPLAYER: int = 2
+MINPLAYER: int = -1
+MAXPLAYER: int = 1
 
 
 class Board:
@@ -18,10 +18,14 @@ class Board:
 
         self.column_limits = np.zeros(shape=ncol)
 
-    def is_terminal(self) -> bool:
+    def is_terminal(self) -> int:
         """
         Checks if a given board configuration is a terminal state
         """
+        for i in range(self.nrow - 3):
+            for j in range(self.ncol - 3):
+                if self.board[i, j] == MINPLAYER and self.board[i, j + 1] == MINPLAYER and self.board[i, j + 2] == MINPLAYER and self.board[i, j + 3] == MINPLAYER:
+                    return -1
         pass
 
     def legal_moves(self) -> np.ndarray:
