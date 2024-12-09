@@ -13,14 +13,21 @@ class Board:
         self.ncol = ncol
 
         self.turn = 0
+        self.history = []
         self.board = np.zeros(shape=(nrow, ncol))
-        # An anrray that shows content of the board
-
         self.column_limits = np.zeros(shape=ncol)
+
+    def curr_player(self):
+        return MAXPLAYER if self.turn % 2 else MINPLAYER
 
     def is_terminal(self) -> int:
         """
         Checks if a given board configuration is a terminal state
+
+        Returns:
+            - +1  MINPLAYER if the board configuration is a win for MINPLAYER
+            - -1  MAXPLAYER if the board configuration is a win for MAXPLAYER
+            -  0  if the game is not over jet
         """
         for i in range(self.nrow - 3):
             for j in range(self.ncol - 3):
@@ -32,6 +39,9 @@ class Board:
         """
         Returns an array of indices of columns where a piece can be 
         dropped
+
+        For the starting state for example it would be [0, 1, 2, 3, 4, 5, 6]
+
         """
         if self.is_terminal():
             return None
