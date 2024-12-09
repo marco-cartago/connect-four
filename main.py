@@ -1,6 +1,10 @@
 import numpy as np
 
-#Nuovo bellissimo commento
+# Nuovo bellissimo commento
+
+MINPLAYER: int = 1
+MAXPLAYER: int = 2
+
 
 class Board:
 
@@ -12,15 +16,15 @@ class Board:
         self.board = np.zeros(shape=(nrow, ncol))
         # An anrray that shows content of the board
 
-        self.column_limits = np.array(shape=ncol)
+        self.column_limits = np.zeros(shape=ncol)
 
-    def is_terminal():
+    def is_terminal(self) -> bool:
         """
         Checks if a given board configuration is a terminal state
         """
         pass
 
-    def legal_moves(self):
+    def legal_moves(self) -> np.ndarray:
         """
         Returns an array of indices of columns where a piece can be 
         dropped
@@ -29,11 +33,11 @@ class Board:
             return None
         return np.where(self.column_limits <= self.nrow)[0]
 
-    def make_move():
+    def make_move(self, move: int) -> None:
         pass
 
-    def minimax():
+    def minimax(self) -> tuple[int, float]:
         pass
 
-    def alphabeta():
+    def alphabeta(self) -> tuple[int, float]:
         pass
