@@ -1,5 +1,6 @@
 import numpy as np
 
+#Nuovo bellissimo commento
 
 class Board:
 
