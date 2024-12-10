@@ -4,6 +4,8 @@ MINPLAYER: int = -1
 MAXPLAYER: int = 1
 EMPTY: int = 0
 
+#Se self.has_ended è uguale a 2 allora è patta
+
 
 class Board:
 
@@ -24,7 +26,7 @@ class Board:
         board_str = ''
         def sym(x): return '○' if x == MAXPLAYER else '●'
         print(" 0 1 2 3 4 5 6")
-        for row in self.board:
+        for row in self.board[::-1]:
             row_str = '|' + '|'.join((sym(cell)) if cell !=
                                      0 else ' ' for cell in row) + '|'
             board_str += row_str + '\n'
@@ -73,7 +75,7 @@ class Board:
 
         For the starting state for example it would be [0, 1, 2, 3, 4, 5, 6]
         """
-        if self.has_ended:
+        if self.has_ended != 0:
             return None
         else:
             return np.where(self.column_limits <= self.nrow)[0]
@@ -84,7 +86,6 @@ class Board:
         to drop the piece. This function incrementally checks if the given move ends the game
         connecting four or more.
         """
-
         if self.has_ended != 0:
             raise Exception("Game already ended")
 
@@ -99,7 +100,8 @@ class Board:
         self.turn += 1
 
         connected_points = 0
-        for crow in range(row - 4, row + 4 + 1):
+        #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
+        for crow in range(row - 4, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
                     connected_points += 1
@@ -110,7 +112,7 @@ class Board:
             self.has_ended = curr_player
 
         connected_points = 0
-        for ccol in range(col - 4, col + 4 + 1):
+        for ccol in range(col - 4, col + 4):
             if ccol < self.ncol and ccol >= 0:
                 if self.board[row, ccol] == curr_player:
                     connected_points += 1
@@ -121,7 +123,7 @@ class Board:
             self.has_ended = curr_player
 
         connected_points = 0
-        for d in range(0, 4 + 1):
+        for d in range(0, 4):
             if col + d < self.ncol and row - d >= 0:
                 if self.board[row - d, col + d] == curr_player:
                     connected_points += 1
@@ -132,7 +134,7 @@ class Board:
             self.has_ended = curr_player
 
         connected_points = 0
-        for d in range(0, 4 + 1):
+        for d in range(0, ):
             if col + d < self.nrow and col - d >= 0:
                 if self.board[row + d, col - d] == curr_player:
                     connected_points += 1
@@ -141,6 +143,9 @@ class Board:
 
         if connected_points >= 4:
             self.has_ended = curr_player
+        
+        if self.legal_moves == None:
+            self.has_ended = 2
 
         # Rendere anche la generazione delle mosse di forza quattro incementale
         # ogni volta prendo il max() della sequenza di vicini più lunga delle teste
@@ -159,6 +164,7 @@ class Board:
                 if verbose:
                     print(self)
                 self.make_move(move)
+                if self.has_ended != 0: break
             else:
                 raise Exception(f"Illegl move {move}")
 
@@ -185,8 +191,34 @@ class Board:
         # Restore the previous situation
         self.has_ended = EMPTY
 
-    def minimax(self) -> tuple[int, float]:
-        pass
+
+    def minimax(self, depth) -> tuple[int, float]:
+        #Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
+        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
+            return self.history[-1], self.has_ended
+        if self.legal_moves() is None:
+            return self.history[-1], 0
+        curr_pl = self.curr_player()
+        best = self.legal_moves()[0]
+        if curr_pl == MAXPLAYER:
+            a = float("-inf")
+            for move in self.legal_moves():
+                self.make_move(move)
+                mossa, value = self.minimax(depth - 1)
+                if value > a:
+                    a = value
+                    best = mossa
+                self.undo_move()
+        else:
+            a = float('+inf')
+            for move in self.legal_moves():
+                self.make_move(move)
+                mossa, value = self.minimax(depth - 1)
+                if value < a:
+                    a = value
+                    best = mossa
+                self.undo_move()
+        return best, a
 
     def alphabeta(self) -> tuple[int, float]:
         pass
@@ -200,3 +232,14 @@ if __name__ == "__main__":
     print(b.has_ended)
     print(b.legal_moves())
     print(b)
+
+    prova = Board()
+    while prova.has_ended == 0:
+        print(prova)
+        if prova.curr_player() == MINPLAYER:
+            x = input("Waiting for your move: ")
+            prova.make_move(int(x))
+        else:
+            prova.make_move(prova.minimax(2)[0])
+    print(prova)
+        
