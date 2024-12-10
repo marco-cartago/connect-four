@@ -78,7 +78,7 @@ class Board:
         if self.has_ended != 0:
             return None
         else:
-            return np.where(self.column_limits <= self.nrow)[0]
+            return np.where(self.column_limits < self.nrow)[0]
 
     def make_move(self, move: int) -> None:
         """
@@ -101,48 +101,48 @@ class Board:
 
         connected_points = 0
         #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
-        for crow in range(row - 4, row + 4):
+        for crow in range(row - 3, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
                     connected_points += 1
+                    if connected_points >= 4:
+                        self.has_ended = curr_player
+                        return
                 else:
                     connected_points = 0
 
-        if connected_points >= 4:
-            self.has_ended = curr_player
-
         connected_points = 0
-        for ccol in range(col - 4, col + 4):
+        for ccol in range(col - 3, col + 4):
             if ccol < self.ncol and ccol >= 0:
                 if self.board[row, ccol] == curr_player:
                     connected_points += 1
+                    if connected_points == 4:
+                        self.has_ended = curr_player
+                        return
                 else:
                     connected_points = 0
-
-        if connected_points >= 4:
-            self.has_ended = curr_player
 
         connected_points = 0
         for d in range(0, 4):
             if col + d < self.ncol and row - d >= 0:
                 if self.board[row - d, col + d] == curr_player:
                     connected_points += 1
+                    if connected_points >= 4:
+                        self.has_ended = curr_player
+                        return
                 else:
                     connected_points = 0
-
-        if connected_points >= 4:
-            self.has_ended = curr_player
 
         connected_points = 0
-        for d in range(0, ):
-            if col + d < self.nrow and col - d >= 0:
+        for d in range(0, 4):
+            if row + d < self.nrow and col - d >= 0:
                 if self.board[row + d, col - d] == curr_player:
                     connected_points += 1
+                    if connected_points >= 4:
+                        self.has_ended = curr_player
+                        return
                 else:
                     connected_points = 0
-
-        if connected_points >= 4:
-            self.has_ended = curr_player
         
         if self.legal_moves == None:
             self.has_ended = 2
@@ -231,7 +231,6 @@ if __name__ == "__main__":
         verbose=True)
     print(b.has_ended)
     print(b.legal_moves())
-    print(b)
 
     prova = Board()
     while prova.has_ended == 0:
@@ -240,6 +239,7 @@ if __name__ == "__main__":
             x = input("Waiting for your move: ")
             prova.make_move(int(x))
         else:
-            prova.make_move(prova.minimax(2)[0])
+            prova.make_move(prova.minimax(5)[0])
     print(prova)
+    print(prova.has_ended)
         
