@@ -2,12 +2,15 @@ import numpy as np
 
 MINPLAYER: int = -1
 MAXPLAYER: int = 1
+EMPTY: int = 0
 
 
 class Board:
 
     def __init__(self, nrow: int = 6, ncol: int = 7):
-
+        """
+        Initializes a new empty board
+        """
         self.nrow: int = nrow
         self.ncol: int = ncol
 
@@ -72,13 +75,41 @@ class Board:
             raise Exception("Illegal move :(")
 
         curr_player = self.curr_player()
-        self.board[self.column_limits[move], move] = curr_player
-        self.column_limits[move] += 1
+        row, col = self.column_limits[move], move
+
+        self.board[row, col] = curr_player
+        self.column_limits[col] += 1
         self.history.append(move)
         self.turn += 1
 
         # TODO
         # To check if the game has ended and update accordingly the board state
+        connected_points = 0
+        for crow in range(row - 4, row + 4 + 1):
+            if crow < self.nrow and crow >= 0:
+                if self.board[crow, col] == curr_player:
+                    connected_points += 1
+                else:
+                    connected_points = 0
+
+        if connected_points == 4:
+            return curr_player
+
+        connected_points = 0
+        for ccol in range(col - 4, col + 4 + 1):
+            if col < self.nrow and ccol >= 0:
+                if self.board[row, ccol] == curr_player:
+                    connected_points += 1
+                else:
+                    connected_points = 0
+
+        if connected_points == 4:
+            return curr_player
+
+        # Rendere anche la generazione delle mosse di forza quattro incementale
+        # ogni volta prendo il max() della sequenza di vicini più lunga delle teste
+        # che "faccio crescere" a quel punto mi basta controllare se il max(...) locale
+        # arriva a 4.
 
     def undo_move(self) -> None:
         """
