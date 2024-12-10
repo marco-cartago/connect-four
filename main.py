@@ -15,10 +15,19 @@ class Board:
         self.ncol: int = ncol
 
         self.turn: int = 0
-        self.has_ended: bool = False
+        self.has_ended: int = False
         self.history: list[int] = []
         self.board = np.zeros(shape=(nrow, ncol))
         self.column_limits = np.zeros(shape=ncol)
+
+    def __str__(self):
+        board_str = ''
+        def sym(x): return '○' if sym == MAXPLAYER else '●'
+        for row in self.board:
+            row_str = ('|'.join(sym(cell)) if cell !=
+                       0 else ' ' for cell in row)
+            board_str += row_str + '\n'
+        return board_str
 
     def curr_player(self):
         """
@@ -33,7 +42,7 @@ class Board:
         Returns:
             - +1  MINPLAYER if the board configuration is a win for MINPLAYER
             - -1  MAXPLAYER if the board configuration is a win for MAXPLAYER
-            -  0  if the game is not over jet
+            -  0  if the game is not over yet
         """
         for i in range(self.nrow - 3):
             for j in range(self.ncol - 3):
@@ -68,6 +77,12 @@ class Board:
         return np.where(self.column_limits <= self.nrow)[0]
 
     def make_move(self, move: int) -> None:
+        """
+        Updates the current board rappresentation given the move: the column in which 
+        to drop the piece. This function incrementally checks if the given move ends the game
+        connecting four or more.
+        """
+
         if self.is_terminal() != 0:
             raise Exception("Game already ended")
 
@@ -84,6 +99,7 @@ class Board:
 
         # TODO
         # To check if the game has ended and update accordingly the board state
+
         connected_points = 0
         for crow in range(row - 4, row + 4 + 1):
             if crow < self.nrow and crow >= 0:
@@ -92,30 +108,65 @@ class Board:
                 else:
                     connected_points = 0
 
-        if connected_points == 4:
-            return curr_player
+        if connected_points >= 4:
+            self.has_ended = curr_player
 
         connected_points = 0
         for ccol in range(col - 4, col + 4 + 1):
-            if col < self.nrow and ccol >= 0:
+            if col < self.ncol and ccol >= 0:
                 if self.board[row, ccol] == curr_player:
                     connected_points += 1
                 else:
                     connected_points = 0
 
-        if connected_points == 4:
-            return curr_player
+        if connected_points >= 4:
+            self.has_ended = curr_player
+
+        connected_points = 0
+        for d in range(0, 4 + 1):
+            if col + d < self.ncol and row - d >= 0:
+                if self.board[row - d, col + d] == curr_player:
+                    connected_points += 1
+                else:
+                    connected_points = 0
+
+        if connected_points >= 4:
+            self.has_ended = curr_player
+
+        connected_points = 0
+        for d in range(0, 4 + 1):
+            if col + d < self.nrow and col - d >= 0:
+                if self.board[row + d, col - d] == curr_player:
+                    connected_points += 1
+                else:
+                    connected_points = 0
+
+        if connected_points >= 4:
+            self.has_ended = curr_player
 
         # Rendere anche la generazione delle mosse di forza quattro incementale
         # ogni volta prendo il max() della sequenza di vicini più lunga delle teste
         # che "faccio crescere" a quel punto mi basta controllare se il max(...) locale
         # arriva a 4.
 
+        # Probabilmente ha senso farlo solo in versioni generalizzate del gioco in cui ho
+        # sequenze arbitrarie da controllare
+
     def undo_move(self) -> None:
         """
-        Undoes the last move made
+        Undoes the last move
         """
-        pass
+        last_move = self.history.pop()
+        edit_row, edit_col = self.column_limits[last_move] - 1, last_move
+
+        # Remove the disc from the board
+        self.board[edit_row, edit_col] = EMPTY
+        # Decrease the column height
+        self.column_limits[edit_col] -= 1
+        # Set the correct turn
+        self.turn -= 1
+        # Restore the previous situation
+        self.has_ended = EMPTY
 
     def minimax(self) -> tuple[int, float]:
         pass
