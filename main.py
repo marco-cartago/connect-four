@@ -152,6 +152,20 @@ class Board:
         # Probabilmente ha senso farlo solo in versioni generalizzate del gioco in cui ho
         # sequenze arbitrarie da controllare
 
+    def play_move_sequence(self, move_list: list[int]) -> None:
+        """
+        Plays a sequence of moves on the board
+        """
+        for move in move_list:
+            self.make_move(move)
+
+    def undo_move_sequence(self, move_num: int) -> None:
+        """
+        Undoes a sequence of moves on the board
+        """
+        for _ in range(move_num):
+            self.undo_move()
+
     def undo_move(self) -> None:
         """
         Undoes the last move
