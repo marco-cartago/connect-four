@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 MINPLAYER: int = -1
 MAXPLAYER: int = 1
@@ -190,11 +191,57 @@ class Board:
         self.turn -= 1
         # Restore the previous situation
         self.has_ended = EMPTY
+    
+    def eval(self) -> int:
+        #Una posizione è forte quando:
+        #calcolo il numero di elementi in riga in base alle caselle vuote che ha vicino
+        '''
+        | | | | | | | |
+        |x|x|x| | | | |
+        |x|○|x| |x|x|x|
+        |x|●|x|x|x|○|x|
+        |x|○|○|x|x|○|x|
+        |●|●|○|●|●|●|●|
+        In poche parole, se questa è la posizione (so che non può accadere ma è per fare un esempio)
+        Io pensavo di controllare tutte le posizioni segnate con delle x
+        '''
+        curr_player = self.curr_player()
+        tot = 0
+        #Probabilmente farò in parte controllo verticale in quanto molto più veloce
+        for i in range(self.ncol - 1):
+            #Dove controllare
+            if self.column_limits[i + 1] > self.column_limits[i]:
+                #Ciclo per ogni casella da controllare
+                for j in range(self.column_limits[i], self.column_limits[i + 1] + 1):
+                    tmp = 0
+                    tmp_tot = 0
+                    #Controllo di quanti orizzontali già in linea
+                    for k in range(-3, 4):
+                        if k == 0:  continue
+                        if i + k >= 0 and i + k < self.ncol:
+                            if self.board[j, i + k] == EMPTY:
+                                #Se il valore assoluto di tmp è maggiore del valore assoluto di tot, allora scambia
+                                #Forse questo posso modificare anche in base al turno del giocatore
+                                if abs(tmp) > abs(tmp_tot):
+                                    #Probabilmente devo controllare a chi tocca e devo anche pensare al numero di mosse che devo fare per arrivare fin là, ma per ora va bene così
+                                    tmp_tot = tmp
+                                tmp = 0
+                            else:
+                                tmp += self.board[j, i + k]
+                    tot += tmp_tot
+                    #Controllo di quanti nella diagonale principale sono già
+                    #Controllo altra diagonale
+        #Mi serviva questo sleep solo per dei test, no capivo cosa non funzionava
+        #time.sleep(60)
+        return tot/8    #return moooolto provvisorio
+
+        pass
 
 
     def minimax(self, depth) -> tuple[int, float]:
         #Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
+            x = self.eval()
             return self.history[-1], self.has_ended
         if self.legal_moves() is None:
             return self.history[-1], 0
@@ -231,6 +278,8 @@ if __name__ == "__main__":
         verbose=True)
     print(b.has_ended)
     print(b.legal_moves())
+    print(b.column_limits)
+    print(b)
 
     prova = Board()
     while prova.has_ended == 0:
@@ -242,4 +291,3 @@ if __name__ == "__main__":
             prova.make_move(prova.minimax(5)[0])
     print(prova)
     print(prova.has_ended)
-        
