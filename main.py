@@ -402,7 +402,6 @@ class Board:
         if depth == 0:
             return(self.history[-1], self.fast_eval() + self.threats_eval())
 
-
         curr_pl = self.curr_player()
         best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
         if curr_pl == MAXPLAYER:
@@ -426,8 +425,44 @@ class Board:
         #print(f'------\ntermine minmax\nbest = {best}  val = {a}')
         return (best, a)
 
-    def alphabeta(self) -> tuple[int, float]:
-        pass
+    def alphabeta(self, depth, alpha = -100000, beta = 100000) -> tuple[int, float]:
+        if self.has_ended == 1 or self.has_ended == -1:
+            return (self.history[-1], self.has_ended*1000)
+
+        if self.legal_moves() is None:
+            return (self.history[-1], 0)
+
+        if depth == 0:
+            return(self.history[-1], self.fast_eval() + self.threats_eval())
+
+        curr_pl = self.curr_player()
+        best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
+        if curr_pl == MAXPLAYER:
+            a = float("-inf")
+            for move in self.legal_moves():
+                self.make_move(move)
+                new_move, value = self.alphabeta(depth - 1, alpha, beta)
+                if value > a:
+                    a = value
+                    best = new_move
+                self.undo_move()
+                alpha = max(alpha, value) # update lower bound
+                if alpha > beta:
+                    break
+        else:
+            a = float('+inf')
+            for move in self.legal_moves():
+                self.make_move(move)
+                new_move, value = self.alphabeta(depth - 1, alpha, beta)
+                if value < a:
+                    a = value
+                    best = new_move
+                self.undo_move()
+                beta = min(beta, value) # Update upper bound
+                if beta < alpha:
+                    break
+        #print(f'------\ntermine minmax\nbest = {best}  val = {a}')
+        return (best, a)
 
 
 if __name__ == "__main__":
@@ -447,6 +482,6 @@ if __name__ == "__main__":
             x = input("Waiting for your move: ")
             test.make_move(int(x))
         else:
-            test.make_move(test.minimax(4)[0])
+            test.make_move(test.alphabeta(4)[0])
     print(test)
     print(test.has_ended)
