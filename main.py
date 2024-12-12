@@ -5,6 +5,13 @@ MINPLAYER: int = -1
 MAXPLAYER: int = 1
 EMPTY: int = 0
 
+map = np.array([[3, 4, 5, 7, 5, 4, 3],
+       [4, 6, 8, 10, 8, 6, 4],
+       [5, 7, 11, 13, 11, 7, 5],
+       [5, 7, 11, 13, 11, 7, 5],
+       [4, 6, 8, 10, 8, 6, 4],
+       [3, 4, 5, 7, 5, 4, 3]])
+
 #Se self.has_ended è uguale a 2 allora è patta
 
 
@@ -22,6 +29,7 @@ class Board:
         self.history: list[int] = []
         self.board = np.zeros(shape=(nrow, ncol), dtype=np.int64)
         self.column_limits = np.zeros(shape=ncol, dtype=np.int64)
+        self.save_value_table = 0
 
     def __str__(self):
         board_str = ''
@@ -91,12 +99,13 @@ class Board:
             raise Exception("Game already ended")
 
         if move not in self.legal_moves():
-            raise Exception("Illegal move :(")
+            raise Exception("Illegal move")
 
         curr_player = self.curr_player()
         row, col = self.column_limits[move], move
         self.board[row, col] = curr_player
         self.column_limits[col] += 1
+        self.save_value_table += map[row, col]*curr_player
         self.history.append(move)
         self.turn += 1
 
@@ -124,9 +133,12 @@ class Board:
                     connected_points = 0
 
         connected_points = 0
-        for d in range(0, 4):
-            if col + d < self.ncol and row - d >= 0:
-                if self.board[row - d, col + d] == curr_player:
+
+        #!! 2 CICLI FOR SONO DA TOGLIERE, MA AL MOMENTO NON SO QUALI
+
+        for d in range(-3, 4):
+            if col + d < self.ncol and row + d >= 0 and row + d < self.nrow and col + d >= 0:
+                if self.board[row + d, col + d] == curr_player:
                     connected_points += 1
                     if connected_points >= 4:
                         self.has_ended = curr_player
@@ -135,8 +147,8 @@ class Board:
                     connected_points = 0
 
         connected_points = 0
-        for d in range(0, 4):
-            if row + d < self.nrow and col - d >= 0:
+        for d in range(-3, 4):
+            if row + d < self.nrow and col - d >= 0 and col - d < self.ncol and row + d >= 0:
                 if self.board[row + d, col - d] == curr_player:
                     connected_points += 1
                     if connected_points >= 4:
@@ -183,6 +195,7 @@ class Board:
         last_move = self.history.pop()
         edit_row, edit_col = self.column_limits[last_move] - 1, last_move
 
+        self.save_value_table -= map[edit_row, edit_col]*self.board[edit_row, edit_col]
         # Remove the disc from the board
         self.board[edit_row, edit_col] = EMPTY
         # Decrease the column height
@@ -192,7 +205,93 @@ class Board:
         # Restore the previous situation
         self.has_ended = EMPTY
     
-    def eval(self) -> int:
+    def num_connected(self, move) -> int:
+        curr_player = self.curr_player()
+        row, col = self.column_limits[move], move
+        self.board[row, col] = curr_player
+        connected_points = 0
+        massimo = 0
+        #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
+        for crow in range(row - 3, row + 4):
+            if crow < self.nrow and crow >= 0:
+                if self.board[crow, col] == curr_player:
+                    connected_points += 1
+                    if connected_points >= 4:
+                        break
+                else:
+                    massimo = max(massimo, connected_points)
+                    connected_points = 0
+        massimo = max(massimo, connected_points)
+        connected_points = 0
+        for ccol in range(col - 3, col + 4):
+            if ccol < self.ncol and ccol >= 0:
+                if self.board[row, ccol] == curr_player:
+                    connected_points += 1
+                    if connected_points == 4:
+                        break
+                else:
+                    massimo = max(massimo, connected_points)
+                    connected_points = 0
+        massimo = max(massimo, connected_points)
+        connected_points = 0
+
+        #!! 2 CICLI FOR SONO DA TOGLIERE, MA AL MOMENTO NON SO QUALI
+
+        for d in range(-3, 4):
+            if col + d < self.ncol and row + d >= 0 and row + d < self.nrow and col + d >= 0:
+                if self.board[row + d, col + d] == curr_player:
+                    connected_points += 1
+                    if connected_points >= 4:
+                        break
+                else:
+                    massimo = max(massimo, connected_points)
+                    connected_points = 0
+
+        massimo = max(massimo, connected_points)
+        connected_points = 0
+
+        for d in range(-3, 4):
+            if row + d < self.nrow and col - d >= 0 and col - d < self.ncol and row + d >= 0:
+                if self.board[row + d, col - d] == curr_player:
+                    connected_points += 1
+                    if connected_points >= 4:
+                        break
+                else:
+                    massimo = max(massimo, connected_points)
+                    connected_points = 0
+
+        self.board[row, col] = EMPTY
+        massimo = max(massimo, connected_points) 
+        return massimo*curr_player
+    
+    def eval_2(self) -> float:
+        if self.has_ended:
+            return float("+inf")*self.has_ended
+        curr_player = self.curr_player()
+        tot = 0
+        legal_Moves = self.legal_moves()
+        values = [0, 1, 2, 5]
+
+        for col in legal_Moves:
+            tmp = self.num_connected(col)
+            tot += values[abs(tmp) - 1]*curr_player
+        
+        # print(legal_Moves)
+        values = [0, 0, 0, 4]
+        self.turn += 1
+        curr_player = self.curr_player()
+        for col in self.legal_moves():
+            tot += values[abs(self.num_connected(col)) - 1]*curr_player
+        self.turn -= 1
+
+        return tot
+
+    def eval_Chiorri(self) -> float:
+        if self.has_ended:
+            return float("+inf")*self.has_ended
+        return self.save_value_table
+
+    def eval(self) -> float:
         #Una posizione è forte quando:
         #calcolo il numero di elementi in riga in base alle caselle vuote che ha vicino
         '''
@@ -233,20 +332,22 @@ class Board:
                     #Controllo altra diagonale
         #Mi serviva questo sleep solo per dei test, no capivo cosa non funzionava
         #time.sleep(60)
-        return tot/8    #return moooolto provvisorio
+        return tot    #return moooolto provvisorio
 
         pass
 
 
     def minimax(self, depth) -> tuple[int, float]:
         #Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
-        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
-            x = self.eval()
-            return self.history[-1], self.has_ended
+        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0 or len(self.legal_moves()) == 0:
+            return self.history[-1], self.eval_Chiorri()
+        
         if self.legal_moves() is None:
             return self.history[-1], 0
+
         curr_pl = self.curr_player()
         best = self.legal_moves()[0]
+        
         if curr_pl == MAXPLAYER:
             a = float("-inf")
             for move in self.legal_moves():
@@ -254,7 +355,7 @@ class Board:
                 mossa, value = self.minimax(depth - 1)
                 if value > a:
                     a = value
-                    best = mossa
+                    best = move
                 self.undo_move()
         else:
             a = float('+inf')
@@ -263,31 +364,71 @@ class Board:
                 mossa, value = self.minimax(depth - 1)
                 if value < a:
                     a = value
-                    best = mossa
+                    best = move
                 self.undo_move()
         return best, a
 
-    def alphabeta(self) -> tuple[int, float]:
-        pass
+    def alphabeta(self, depth, alpha=float('-inf'), beta=float('inf')) -> tuple[int, float]:
+        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
+            return self.history[-1], self.eval_Chiorri()
+        
+        moves = self.legal_moves()
+        curr_pl = self.curr_player()
+        best = moves[0]
+        
+        if curr_pl == MAXPLAYER:
+            value = float('-inf')
+            for move in moves:
+                self.make_move(move)
+                _, score = self.alphabeta(depth - 1, alpha, beta)
+                if score > value:
+                    value = score
+                    best = move
+                alpha = max(alpha, value)
+                self.undo_move()
+                if alpha >= beta:
+                    break
+        else:
+            value = float('inf')
+            for move in moves:
+                self.make_move(move)
+                _, score = self.alphabeta(depth - 1, alpha, beta)
+                if score < value:
+                    value = score
+                    best = move
+                beta = min(beta, value)
+                self.undo_move()
+                if alpha >= beta:
+                    break
+        
+        return best, value
 
 
 if __name__ == "__main__":
-    b = Board()
-    b.make_move_sequence(
-        [1, 2, 0, 1, 5, 2, 1, 5, 3, 1, 4, 5, 6, 1, 3, 2, 4, 5, 6],
-        verbose=True)
-    print(b.has_ended)
-    print(b.legal_moves())
-    print(b.column_limits)
-    print(b)
+    # b = Board()
+    # b.make_move_sequence(
+    #     [1, 2, 0, 1, 5, 2, 1, 5, 3, 1, 4, 5, 6, 1, 3, 2, 4, 5, 6],
+    #     verbose=True)
+    # print(b.has_ended)
+    # print(b.legal_moves())
+    # print(b.column_limits)
+    # print(b)
+
+    # b = Board()
+    # b.make_move_sequence([1, 2, 0, 1, 5, 2, 1, 5, 3, 1, 4, 5, 6, 1, 3, 2, 4, 5, 6], verbose=True)
+    # print(b)
+    # print(b.eval_Chiorri())
+    # b.undo_move()
+    # print(b)
+    # print(b.eval_Chiorri())
 
     prova = Board()
     while prova.has_ended == 0:
         print(prova)
-        if prova.curr_player() == MINPLAYER:
-            x = input("Waiting for your move: ")
-            prova.make_move(int(x))
-        else:
-            prova.make_move(prova.minimax(5)[0])
+        mossa, value = prova.alphabeta(8)
+        #print(prova.num_connected(mossa))
+        prova.make_move(mossa)
+        print(value)
+            
     print(prova)
     print(prova.has_ended)
