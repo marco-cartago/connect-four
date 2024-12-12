@@ -7,7 +7,6 @@ EMPTY: int = 0
 
 #Se self.has_ended è uguale a 2 allora è patta
 
-
 class Board:
 
     def __init__(self, nrow: int = 6, ncol: int = 7):
@@ -42,7 +41,6 @@ class Board:
     def is_terminal(self) -> int:
         """
         Checks if a given board configuration is a terminal state
-
         Returns:
             - +1  MINPLAYER if the board configuration is a win for MINPLAYER
             - -1  MAXPLAYER if the board configuration is a win for MAXPLAYER
@@ -84,13 +82,14 @@ class Board:
     def make_move(self, move: int) -> None:
         """
         Updates the current board rappresentation given the move: the column in which 
-        to drop the piece. This function incrementally checks if the given move ends the game
-        connecting four or more.
+        to drop the piece. This function incrementally checks if the given move ends
+        the game connecting four or more.
         """
         if self.has_ended != 0:
             raise Exception("Game already ended")
 
         if move not in self.legal_moves():
+            print(f'il giocatore {self.curr_player()} ha provato a giocare {move} nella posizione\n{str(self)}')
             raise Exception("Illegal move :(")
 
         curr_player = self.curr_player()
@@ -237,35 +236,192 @@ class Board:
 
         pass
 
+    def fast_eval(self) -> int:
+        """
+        This function computes the number of possible 4 in a row that each player can
+        still make and returns the difference
+        """
+        # Function that counts all possible sequences a player can make
+        def count_open_sequences(player):
+            count = 0
+            # Horizontal
+            for r in range(self.nrow):
+                for c in range(self.ncol - 3):
+                    window = self.board[r, c:c+4]
+                    if is_valid_window(window, player):
+                        count += 1
+            # Vertical
+            for r in range(self.nrow - 3):
+                for c in range(self.ncol):
+                    window = self.board[r:r+4, c]
+                    if is_valid_window(window, player):
+                        count += 1
+            # Diagonal (top-left to bottom-right)
+            for r in range(self.nrow - 3):
+                for c in range(self.ncol - 3):
+                    window = [self.board[r+i, c+i] for i in range(4)]
+                    if is_valid_window(window, player):
+                        count += 1
+            # Diagonal (top-right to bottom-left)
+            for r in range(self.nrow - 3):
+                for c in range(3, self.ncol):
+                    window = [self.board[r+i, c-i] for i in range(4)]
+                    if is_valid_window(window, player):
+                        count += 1
+            return count
+
+        # Function that checks if a player can make a sequence in the given window
+        def is_valid_window(window, player):
+            """
+            Checks if a window contains only the player's pieces and empty spaces.
+            """
+            return all(cell == player or cell == 0 for cell in window)
+
+        # Count potential sequences for each player
+        player1_count = count_open_sequences(1)
+        player2_count = count_open_sequences(2)
+
+        # Return the difference
+        return player1_count - player2_count
+
+
+    def threats_eval(self) -> int:
+        """
+        Evaluation function that uses the concept of threats:
+        A threat is a position that would complete a 4-in-a-row for a player.
+        """
+        def find_threats(player):
+            """
+            Identify all threats for the given player.
+            """
+            threats = set()
+            # Horizontal threats
+            for r in range(self.nrow):
+                for c in range(self.ncol - 3):
+                    window = self.board[r, c:c+4]
+                    if is_threat_window(window, player):
+                        for i in range(4):
+                            if window[i] == 0:  # Empty spot in the window
+                                threats.add((r, c + i))
+            # Vertical threats
+            for r in range(self.nrow - 3):
+                for c in range(self.ncol):
+                    window = self.board[r:r+4, c]
+                    if is_threat_window(window, player):
+                        for i in range(4):
+                            if window[i] == 0:  # Empty spot in the window
+                                threats.add((r + i, c))
+            # Diagonal (bottom-left to top-right) threats
+            for r in range(self.nrow - 3):
+                for c in range(self.ncol - 3):
+                    window = [self.board[r+i, c+i] for i in range(4)]
+                    if is_threat_window(window, player):
+                        for i in range(4):
+                            if window[i] == 0:  # Empty spot in the window
+                                threats.add((r + i, c + i))
+            # Diagonal (top-left to bottom-right) threats
+            for r in range(3, self.nrow):
+                for c in range(self.ncol -3):
+                    window = [self.board[r-i, c+i] for i in range(4)]
+                    if is_threat_window(window, player):
+                        for i in range(4):
+                            if window[i] == 0:  # Empty spot in the window
+                                threats.add((r + i, c - i))
+            return threats
+
+        def is_threat_window(window, player):
+            """
+            A window is a threat if it contains exactly 3 pieces of the player and 1 empty space.
+            """
+            return np.count_nonzero(window == player) == 3 and np.count_nonzero(window == 0) == 1
+
+        def filter_threats(threats, opponent_threats):
+            """
+            Remove useless threats:
+            - Threats directly above opponent threats.
+            - Threats above threats shared by both players.
+            """
+            filtered = set()
+            for r, c in threats:
+                if (r + 1, c) not in opponent_threats or r + 1 >= self.nrow:
+                    filtered.add((r, c))
+            return filtered
+
+        def score_threats(threats):
+            """
+            Assign scores to threats:
+            - Base score for each threat.
+            - Bonus for the lowest threat in a column.
+            - Bonus for consecutive threats by the same player.
+            """
+            score = 0
+            column_bottoms = {c: self.nrow for c in range(self.ncol)}
+            consecutive_bonus = 2
+
+            # Determine the lowest threat in each column
+            for r, c in threats:
+                column_bottoms[c] = min(column_bottoms[c], r)
+
+            for r, c in threats:
+                # Base score
+                score += 1
+                # Bonus for being the lowest in a column
+                if r == column_bottoms[c]:
+                    score += 2
+                # Bonus for consecutive threats (check neighbors)
+                if (r, c + 1) in threats or (r + 1, c) in threats:
+                    score += consecutive_bonus
+            return score
+
+        # Find threats for both players
+        player1_threats = find_threats(1)
+        player2_threats = find_threats(2)
+
+        # Filter threats
+        player1_threats = filter_threats(player1_threats, player2_threats)
+        player2_threats = filter_threats(player2_threats, player1_threats)
+
+        # Calculate scores
+        player1_score = score_threats(player1_threats)
+        player2_score = score_threats(player2_threats)
+
+        # Return the difference in threat scores
+        return player1_score - player2_score
 
     def minimax(self, depth) -> tuple[int, float]:
-        #Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
-        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
-            x = self.eval()
-            return self.history[-1], self.has_ended
+        #print(f'chiamata a minmax, depth = {depth}  turno= {self.curr_player()}')
+        if self.has_ended == 1 or self.has_ended == -1:
+            return (self.history[-1], self.has_ended*1000)
+
         if self.legal_moves() is None:
-            return self.history[-1], 0
+            return (self.history[-1], 0)
+
+        if depth == 0:
+            return(self.history[-1], self.fast_eval() + self.threats_eval())
+
+
         curr_pl = self.curr_player()
-        best = self.legal_moves()[0]
+        best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
         if curr_pl == MAXPLAYER:
             a = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
-                mossa, value = self.minimax(depth - 1)
+                new_move, value = self.minimax(depth - 1)
                 if value > a:
                     a = value
-                    best = mossa
+                    best = new_move
                 self.undo_move()
         else:
             a = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-                mossa, value = self.minimax(depth - 1)
+                new_move, value = self.minimax(depth - 1)
                 if value < a:
                     a = value
-                    best = mossa
+                    best = new_move
                 self.undo_move()
-        return best, a
+        #print(f'------\ntermine minmax\nbest = {best}  val = {a}')
+        return (best, a)
 
     def alphabeta(self) -> tuple[int, float]:
         pass
@@ -281,13 +437,13 @@ if __name__ == "__main__":
     print(b.column_limits)
     print(b)
 
-    prova = Board()
-    while prova.has_ended == 0:
-        print(prova)
-        if prova.curr_player() == MINPLAYER:
+    test = Board()
+    while test.has_ended == 0:
+        print(test)
+        if test.curr_player() == MINPLAYER:
             x = input("Waiting for your move: ")
-            prova.make_move(int(x))
+            test.make_move(int(x))
         else:
-            prova.make_move(prova.minimax(5)[0])
-    print(prova)
-    print(prova.has_ended)
+            test.make_move(test.minimax(4)[0])
+    print(test)
+    print(test.has_ended)
