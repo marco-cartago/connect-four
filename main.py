@@ -37,36 +37,13 @@ class Board:
         """
         Returns the current playing player (haha)
         """
-        return MAXPLAYER if self.turn % 2 else MINPLAYER
-
-    def is_terminal(self) -> int:
+        return MAXPLAYER if self.turn % 2 == 0 else MINPLAYER
+    
+    def curr_player_name(self):
         """
-        Checks if a given board configuration is a terminal state
-        Returns:
-            - +1  MINPLAYER if the board configuration is a win for MINPLAYER
-            - -1  MAXPLAYER if the board configuration is a win for MAXPLAYER
-            -  0  if the game is not over yet
+        Returns the current playing player (haha)
         """
-        for i in range(self.nrow - 3):
-            for j in range(self.ncol - 3):
-                if self.board[i, j] == 0:
-                    continue
-                if self.board[i, j] == MINPLAYER and self.board[i, j + 1] == MINPLAYER and self.board[i, j + 2] == MINPLAYER and self.board[i, j + 3] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i, j] == MINPLAYER and self.board[i + 1, j + 1] == MINPLAYER and self.board[i + 2, j + 2] == MINPLAYER and self.board[i + 3, j + 3] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i, j] == MINPLAYER and self.board[i + 1, j] == MINPLAYER and self.board[i + 2, j] == MINPLAYER and self.board[i + 3, j] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i + 3, j] == MINPLAYER and self.board[i + 2, j + 1] == MINPLAYER and self.board[i + 1, j + 2] == MINPLAYER and self.board[i, j + 3] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i, j] == MAXPLAYER and self.board[i, j + 1] == MAXPLAYER and self.board[i, j + 2] == MAXPLAYER and self.board[i, j + 3] == MAXPLAYER:
-                    return MAXPLAYER
-                elif self.board[i, j] == MAXPLAYER and self.board[i + 1, j + 1] == MAXPLAYER and self.board[i + 2, j + 2] == MAXPLAYER and self.board[i + 3, j + 3] == MAXPLAYER:
-                    return MAXPLAYER
-                elif self.board[i, j] == MAXPLAYER and self.board[i + 1, j] == MAXPLAYER and self.board[i + 2, j] == MAXPLAYER and self.board[i + 3, j] == MAXPLAYER:
-                    return MAXPLAYER
-                elif self.board[i + 3, j] == MAXPLAYER and self.board[i + 2, j + 1] == MAXPLAYER and self.board[i + 1, j + 2] == MAXPLAYER and self.board[i, j + 3] == MAXPLAYER:
-                    return MAXPLAYER
+        return "MAXPLAYER" if self.turn % 2 == 0 else "MINPLAYER"
 
     def legal_moves(self) -> np.ndarray:
         """
@@ -100,9 +77,9 @@ class Board:
         self.history.append(move)
         self.turn += 1
 
+        # Verticale
         connected_points = 0
-        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
-        for crow in range(row - 3, row + 4):
+        for crow in range(row - 3, row + 1):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
                     connected_points += 1
@@ -112,6 +89,7 @@ class Board:
                 else:
                     connected_points = 0
 
+        # Orrizzontale
         connected_points = 0
         for ccol in range(col - 3, col + 4):
             if ccol < self.ncol and ccol >= 0:
@@ -123,9 +101,22 @@ class Board:
                 else:
                     connected_points = 0
 
+        # Diagonale basso_sinistra -> alto_destra
         connected_points = 0
-        for d in range(0, 4):
-            if col + d < self.ncol and row - d >= 0:
+        for d in range(-3, 4):
+            if col + d < self.ncol and row + d < self.nrow and row + d >= 0 and col + d >= 0:
+                if self.board[row + d, col + d] == curr_player:
+                    connected_points += 1
+                    if connected_points >= 4:
+                        self.has_ended = curr_player
+                        return
+                else:
+                    connected_points = 0
+
+        # Diagonale alto_sinistra -> basso_destra
+        connected_points = 0
+        for d in range(-3, 4):
+            if row - d < self.nrow and col + d >= 0 and  col + d < self.ncol and row - d > 0 :
                 if self.board[row - d, col + d] == curr_player:
                     connected_points += 1
                     if connected_points >= 4:
@@ -134,27 +125,8 @@ class Board:
                 else:
                     connected_points = 0
 
-        connected_points = 0
-        for d in range(0, 4):
-            if row + d < self.nrow and col - d >= 0:
-                if self.board[row + d, col - d] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        self.has_ended = curr_player
-                        return
-                else:
-                    connected_points = 0
-
-        if self.legal_moves == None:
+        if self.legal_moves() is None:
             self.has_ended = 2
-
-        # Rendere anche la generazione delle mosse di forza quattro incementale
-        # ogni volta prendo il max() della sequenza di vicini più lunga delle teste
-        # che "faccio crescere" a quel punto mi basta controllare se il max(...) locale
-        # arriva a 4.
-
-        # Probabilmente ha senso farlo solo in versioni generalizzate del gioco in cui ho
-        # sequenze arbitrarie da controllare
 
     def make_move_sequence(self, move_list: list[int], verbose: bool = False) -> None:
         """
@@ -164,7 +136,12 @@ class Board:
             if move in self.legal_moves():
                 if verbose:
                     print(self)
+                for m in self.legal_moves():
+                    self.make_move(m)
+                    print(f"move {m} -> {self.has_ended}")
+                    self.undo_move()
                 self.make_move(move)
+
                 if self.has_ended != 0:
                     break
             else:
@@ -191,7 +168,7 @@ class Board:
         # Set the correct turn
         self.turn -= 1
         # Restore the previous situation
-        self.has_ended = EMPTY
+        self.has_ended = 0
 
     def eval(self) -> int:
         # Una posizione è forte quando:
@@ -286,7 +263,6 @@ class Board:
 
         # Return the difference
         return player1_count - player2_count
-
 
     def threats_eval(self) -> int:
         """
@@ -393,7 +369,7 @@ class Board:
 
     def minimax(self, depth) -> tuple[int, float]:
         if self.has_ended == 1 or self.has_ended == -1:
-            return (self.history[-1], self.has_ended*1000)
+            return (self.history[-1], float("inf")*self.has_ended)
 
         if self.legal_moves() is None:
             return (self.history[-1], 0)
@@ -404,28 +380,33 @@ class Board:
         curr_pl = self.curr_player()
         best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
         if curr_pl == MAXPLAYER:
-            a = float("-inf")
+            val = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
-                new_move, value = self.minimax(depth - 1)
-                if value > a:
-                    a = value
-                    best = new_move
+                _, new_val = self.minimax(depth - 1)
+                if depth == DEBUG_DEPTH:
+                    print(f"{move}:{new_val} player:{self.curr_player_name()} ")
+                if new_val > val:
+                    val = new_val
+                    best = move
                 self.undo_move()
         else:
-            a = float('+inf')
+            val = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-                new_move, value = self.minimax(depth - 1)
-                if value < a:
-                    a = value
-                    best = new_move
+                _, new_val = self.minimax(depth - 1)
+                if depth == DEBUG_DEPTH:
+                    print(f"{move}:{new_val} player:{self.curr_player_name()}")
+                if new_val < val:
+                    val = new_val
+                    best = move
                 self.undo_move()
-        return (best, a)
+        
+        return (best, val)
 
     def alphabeta(self, depth, alpha = -100000, beta = 100000) -> tuple[int, float]:
         if self.has_ended == 1 or self.has_ended == -1:
-            return (self.history[-1], self.has_ended*1000)
+            return (self.history[-1], float("inf")*self.has_ended)
 
         if self.legal_moves() is None:
             return (self.history[-1], 0)
@@ -440,7 +421,7 @@ class Board:
             for move in self.legal_moves():
                 self.make_move(move)
                 new_move, value = self.alphabeta(depth - 1, alpha, beta)
-                if value > a:
+                if value >= a:
                     a = value
                     best = new_move
                 self.undo_move()
@@ -452,33 +433,38 @@ class Board:
             for move in self.legal_moves():
                 self.make_move(move)
                 new_move, value = self.alphabeta(depth - 1, alpha, beta)
-                if value < a:
+                if value <= a:
                     a = value
                     best = new_move
                 self.undo_move()
                 beta = min(beta, value) # Update upper bound
                 if beta < alpha:
                     break
+        print(f"{best}:{a} ")
         return (best, a)
 
 
 if __name__ == "__main__":
-    b = Board()
-    b.make_move_sequence(
-        [1, 2, 0, 1, 5, 2, 1, 5, 3, 1, 4, 5, 6, 1, 3, 2, 4, 5, 6],
-        verbose=True)
-    print(b.has_ended)
-    print(b.legal_moves())
-    print(b.column_limits)
-    print(b)
+    # b = Board()
+    # b.make_move_sequence(
+    #     [6, 3, 2, 3, 2, 3, 3, 3, 2, 3, 2],
+    #     verbose=True)
+    # print(b.has_ended)
+    # print(b.legal_moves())
+    # print(b.column_limits)
+    # print(b)
 
     test = Board()
     while test.has_ended == 0:
+        # print(test)
+        # if test.curr_player() == MINPLAYER:
+        #     x = input("Waiting for your move: ")
+        #     test.make_move(int(x))
+        # else:
+        DEBUG_DEPTH = 3
+        move = test.minimax(DEBUG_DEPTH)[0]
+        print("Played: ", move, "player", test.curr_player_name())
+        test.make_move(move)
         print(test)
-        if test.curr_player() == MINPLAYER:
-            x = input("Waiting for your move: ")
-            test.make_move(int(x))
-        else:
-            test.make_move(test.alphabeta(4)[0])
-    print(test)
+    print(test.history)
     print(test.has_ended)
