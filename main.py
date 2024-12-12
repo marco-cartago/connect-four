@@ -5,7 +5,8 @@ MINPLAYER: int = -1
 MAXPLAYER: int = 1
 EMPTY: int = 0
 
-#Se self.has_ended è uguale a 2 allora è patta
+# Se self.has_ended è uguale a 2 allora è patta
+
 
 class Board:
 
@@ -100,7 +101,7 @@ class Board:
         self.turn += 1
 
         connected_points = 0
-        #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
+        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
         for crow in range(row - 3, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
@@ -143,7 +144,7 @@ class Board:
                         return
                 else:
                     connected_points = 0
-        
+
         if self.legal_moves == None:
             self.has_ended = 2
 
@@ -164,7 +165,8 @@ class Board:
                 if verbose:
                     print(self)
                 self.make_move(move)
-                if self.has_ended != 0: break
+                if self.has_ended != 0:
+                    break
             else:
                 raise Exception(f"Illegl move {move}")
 
@@ -190,10 +192,10 @@ class Board:
         self.turn -= 1
         # Restore the previous situation
         self.has_ended = EMPTY
-    
+
     def eval(self) -> int:
-        #Una posizione è forte quando:
-        #calcolo il numero di elementi in riga in base alle caselle vuote che ha vicino
+        # Una posizione è forte quando:
+        # calcolo il numero di elementi in riga in base alle caselle vuote che ha vicino
         '''
         | | | | | | | |
         |x|x|x| | | | |
@@ -206,33 +208,34 @@ class Board:
         '''
         curr_player = self.curr_player()
         tot = 0
-        #Probabilmente farò in parte controllo verticale in quanto molto più veloce
+        # Probabilmente farò in parte controllo verticale in quanto molto più veloce
         for i in range(self.ncol - 1):
-            #Dove controllare
+            # Dove controllare
             if self.column_limits[i + 1] > self.column_limits[i]:
-                #Ciclo per ogni casella da controllare
+                # Ciclo per ogni casella da controllare
                 for j in range(self.column_limits[i], self.column_limits[i + 1] + 1):
                     tmp = 0
                     tmp_tot = 0
-                    #Controllo di quanti orizzontali già in linea
+                    # Controllo di quanti orizzontali già in linea
                     for k in range(-3, 4):
-                        if k == 0:  continue
+                        if k == 0:
+                            continue
                         if i + k >= 0 and i + k < self.ncol:
                             if self.board[j, i + k] == EMPTY:
-                                #Se il valore assoluto di tmp è maggiore del valore assoluto di tot, allora scambia
-                                #Forse questo posso modificare anche in base al turno del giocatore
+                                # Se il valore assoluto di tmp è maggiore del valore assoluto di tot, allora scambia
+                                # Forse questo posso modificare anche in base al turno del giocatore
                                 if abs(tmp) > abs(tmp_tot):
-                                    #Probabilmente devo controllare a chi tocca e devo anche pensare al numero di mosse che devo fare per arrivare fin là, ma per ora va bene così
+                                    # Probabilmente devo controllare a chi tocca e devo anche pensare al numero di mosse che devo fare per arrivare fin là, ma per ora va bene così
                                     tmp_tot = tmp
                                 tmp = 0
                             else:
                                 tmp += self.board[j, i + k]
                     tot += tmp_tot
-                    #Controllo di quanti nella diagonale principale sono già
-                    #Controllo altra diagonale
-        #Mi serviva questo sleep solo per dei test, no capivo cosa non funzionava
-        #time.sleep(60)
-        return tot/8    #return moooolto provvisorio
+                    # Controllo di quanti nella diagonale principale sono già
+                    # Controllo altra diagonale
+        # Mi serviva questo sleep solo per dei test, no capivo cosa non funzionava
+        # time.sleep(60)
+        return tot/8  # return moooolto provvisorio
 
         pass
 
