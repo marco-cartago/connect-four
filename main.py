@@ -392,7 +392,6 @@ class Board:
         return player1_score - player2_score
 
     def minimax(self, depth) -> tuple[int, float]:
-        #print(f'chiamata a minmax, depth = {depth}  turno= {self.curr_player()}')
         if self.has_ended == 1 or self.has_ended == -1:
             return (self.history[-1], self.has_ended*1000)
 
@@ -422,7 +421,6 @@ class Board:
                     a = value
                     best = new_move
                 self.undo_move()
-        #print(f'------\ntermine minmax\nbest = {best}  val = {a}')
         return (best, a)
 
     def alphabeta(self, depth, alpha = -100000, beta = 100000) -> tuple[int, float]:
@@ -461,7 +459,6 @@ class Board:
                 beta = min(beta, value) # Update upper bound
                 if beta < alpha:
                     break
-        #print(f'------\ntermine minmax\nbest = {best}  val = {a}')
         return (best, a)
 
 
