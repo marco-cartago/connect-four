@@ -220,8 +220,9 @@ class Board:
         """
         This function computes the number of possible 4 in a row that each player can
         still make and returns the difference
+        added: if one of these windows contains two or three pieces, add a bonus
         """
-        # Function that counts all possible sequences a player can make
+
         def count_open_sequences(player):
             count = 0
             # Horizontal
@@ -229,40 +230,85 @@ class Board:
                 for c in range(self.ncol - 3):
                     window = self.board[r, c:c+4]
                     if is_valid_window(window, player):
-                        count += 1
+                        count += relative_worth(window, player, (r,c), (r,c+3))
             # Vertical
             for r in range(self.nrow - 3):
                 for c in range(self.ncol):
                     window = self.board[r:r+4, c]
                     if is_valid_window(window, player):
-                        count += 1
+                        count += relative_worth(window, player, (r,c), (r+3,c))
             # Diagonal (top-left to bottom-right)
             for r in range(self.nrow - 3):
                 for c in range(self.ncol - 3):
                     window = [self.board[r+i, c+i] for i in range(4)]
                     if is_valid_window(window, player):
-                        count += 1
+                        count += relative_worth(window, player, (r,c), (r+3,c+3))
             # Diagonal (top-right to bottom-left)
             for r in range(self.nrow - 3):
                 for c in range(3, self.ncol):
                     window = [self.board[r+i, c-i] for i in range(4)]
                     if is_valid_window(window, player):
-                        count += 1
+                        count += relative_worth(window, player, (r,c), (r+3,c-3))
             return count
 
-        # Function that checks if a player can make a sequence in the given window
         def is_valid_window(window, player):
             """
             Checks if a window contains only the player's pieces and empty spaces.
             """
             return all(cell == player or cell == 0 for cell in window)
 
+        def value_of_window(window, player):
+            """
+            Check if a window contains a 'winning' ammount of tiles for a player:
+            - any opponent tile in the window: not a usable window (0)
+            - 1 tile and 3 empty spaces: not much to say (1)
+            - 2 tiles and 2 empty spaces: good window (3)
+            - 3 tiles and 1 empty space: very good window (8)
+            - 4 tiles: winning position (10000)
+            """
+            res = []
+            for cell in window:
+                if cell == -player: return 0
+                elif cell == 0: res.append(0)
+                elif cell == player: res.append(1)
+            res = sum(res)
+            if res == 0:return 0
+            elif res == 1: return 1
+            elif res == 2: return 3
+            elif res == 3: return 8
+            elif res == 4: return 10000
+             
+        def relative_worth(window, player, start, end):
+            """
+            Function that comutes the worth of a window and relates it
+            to how hard it is to fill it (how 'high' its empty positions are)
+            'start' and 'end' are the coordinates of the extremes of the window (used to locate it)
+            """
+            res = value_of_window(window, player)
+            if res == 0: # End if window has no value
+                return res
+            # Compute indexes of squares in the window to later evaluate how 'high' empty squares are
+            rows = np.linspace(start[0], end[0], 4) if start[0] != end[0] else [start[0] for _ in range(4)]
+            cols = np.linspace(start[1], end[1], 4) if start[1] != end[1] else [start[1] for _ in range(4)]
+            rows, cols = [int(r) for r in rows], [int(c) for c in cols]
+
+            # Count how many tiles have been placed on each column
+            bottom = [self.history.count(j) for j in range(self.ncol)]
+            # For each column that contains a zero, compute how far we are from the bottom
+            depth = []
+            for col, row in zip(cols, rows):
+                if self.board[row,col] == 0:
+                    depth.append((row-1) - bottom[col]) # row-1 for later computations (can i place a tile in the window right now?)
+            # If the window is 'far' from completition, assign less value
+            depth = sum(depth) # Total of distances from being able to place a tile in the window
+            return res * (0.9)**depth # Decay factor of 0.9 the further the winning window is
+
         # Count potential sequences for each player
-        player1_count = count_open_sequences(1)
-        player2_count = count_open_sequences(2)
+        max_count = count_open_sequences(1)
+        min_count = count_open_sequences(-1)
 
         # Return the difference
-        return player1_count - player2_count
+        return max_count - min_count
 
     def threats_eval(self) -> int:
         """
@@ -353,23 +399,23 @@ class Board:
             return score
 
         # Find threats for both players
-        player1_threats = find_threats(1)
-        player2_threats = find_threats(2)
+        max_threats = find_threats(1)
+        min_threats = find_threats(-1)
 
         # Filter threats
-        player1_threats = filter_threats(player1_threats, player2_threats)
-        player2_threats = filter_threats(player2_threats, player1_threats)
+        max_threats = filter_threats(max_threats, min_threats)
+        min_threats = filter_threats(min_threats, max_threats)
 
         # Calculate scores
-        player1_score = score_threats(player1_threats)
-        player2_score = score_threats(player2_threats)
+        max_score = score_threats(max_threats)
+        min_score = score_threats(min_threats)
 
         # Return the difference in threat scores
-        return player1_score - player2_score
+        return max_score - min_score
 
     def minimax(self, depth) -> tuple[int, float]:
         if self.has_ended == 1 or self.has_ended == -1:
-            return (self.history[-1], float("inf")*self.has_ended)
+            return (self.history[-1], 10000*self.has_ended)
 
         if self.legal_moves() is None:
             return (self.history[-1], 0)
@@ -406,7 +452,7 @@ class Board:
 
     def alphabeta(self, depth, alpha = -100000, beta = 100000) -> tuple[int, float]:
         if self.has_ended == 1 or self.has_ended == -1:
-            return (self.history[-1], float("inf")*self.has_ended)
+            return (self.history[-1], 10000*self.has_ended)
 
         if self.legal_moves() is None:
             return (self.history[-1], 0)
@@ -417,31 +463,33 @@ class Board:
         curr_pl = self.curr_player()
         best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
         if curr_pl == MAXPLAYER:
-            a = float("-inf")
+            val = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
-                new_move, value = self.alphabeta(depth - 1, alpha, beta)
-                if value >= a:
-                    a = value
-                    best = new_move
+                _, new_val = self.alphabeta(depth - 1)
+                if depth == DEBUG_DEPTH:
+                    print(f"{move}:{new_val} player:{self.curr_player_name()} ")
+                if new_val > val:
+                    val = new_val
+                    best = move
                 self.undo_move()
-                alpha = max(alpha, value) # update lower bound
-                if alpha > beta:
-                    break
+                alpha = max (alpha, new_val)
+                if beta < alpha: break
         else:
-            a = float('+inf')
+            val = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-                new_move, value = self.alphabeta(depth - 1, alpha, beta)
-                if value <= a:
-                    a = value
-                    best = new_move
+                _, new_val = self.alphabeta(depth - 1)
+                if depth == DEBUG_DEPTH:
+                    print(f"{move}:{new_val} player:{self.curr_player_name()}")
+                if new_val < val:
+                    val = new_val
+                    best = move
                 self.undo_move()
-                beta = min(beta, value) # Update upper bound
-                if beta < alpha:
-                    break
-        print(f"{best}:{a} ")
-        return (best, a)
+                beta = min(beta, new_val)
+                if beta < alpha: break
+        
+        return (best, val)
 
 
 if __name__ == "__main__":
@@ -462,7 +510,7 @@ if __name__ == "__main__":
         #     test.make_move(int(x))
         # else:
         DEBUG_DEPTH = 3
-        move = test.minimax(DEBUG_DEPTH)[0]
+        move = test.alphabeta(DEBUG_DEPTH)[0]
         print("Played: ", move, "player", test.curr_player_name())
         test.make_move(move)
         print(test)
