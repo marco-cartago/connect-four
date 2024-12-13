@@ -34,7 +34,7 @@ class Board:
 
     def __str__(self):
         board_str = ''
-        def sym(x): return '○' if x == MAXPLAYER else '●'
+        def sym(x): return 'O' if x == MAXPLAYER else 'X'
         print(" 0 1 2 3 4 5 6")
         for row in self.board[::-1]:
             row_str = '|' + '|'.join((sym(cell)) if cell !=
@@ -212,6 +212,7 @@ class Board:
                 else:
                     massimo = max(massimo, connected_points)
                     connected_points = 0
+
         massimo = max(massimo, connected_points)
         connected_points = 0
 
@@ -757,6 +758,24 @@ class Board:
         # Return the difference in threat scores
         return max_score - min_score
 
+    def eval_cartago(self) -> float:
+        if self.has_ended == 1:
+            return float("inf")
+        elif self.has_ended == -1:
+            return float("-inf")
+        elif self.has_ended == 2:
+            return 0
+        else:
+            move = self.history[-1]
+            row = self.column_limits[move] - 1
+            map_val = map[row, move]
+
+            self.undo_move()
+            conn_val = self.num_connected(move)
+            self.make_move(move)
+
+            return - conn_val + (map_val / 20) * self.curr_player()
+
     def minimax(self, depth) -> tuple[int, float]:
         # Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0 or len(self.legal_moves()) == 0:
@@ -791,7 +810,7 @@ class Board:
     def alphabeta(self, depth, alpha=float('-inf'), beta=float('inf')) -> tuple[int, float]:
 
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
-            return self.history[-1], self.eval_possibilities() + self.eval_Chiorri()
+            return self.history[-1], self.eval_cartago()
 
         moves = self.legal_moves()
 
@@ -838,15 +857,19 @@ if __name__ == "__main__":
     # print(b.legal_moves())
     # print(b.column_limits)
     # print(b)
-    b = Board()
-    b.make_move_sequence([0, 1, 2, 0, 1, 0, 0, 5, 1, 5, 2, 5, 3], verbose=True)
-    print(b)
-    print(b.has_ended)
+    # b = Board()
+    # b.make_move_sequence([0, 1, 2, 0, 1, 0, 0, 5, 1, 5, 2, 5, 3], verbose=True)
+    # print(b)
+    # print(b.has_ended)
 
     prova = Board()
     while prova.has_ended == 0:
-        print(prova)
-        mossa, value = prova.alphabeta(5)
+        # print(prova)
+        # if prova.curr_player() == MAXPLAYER:
+        #     move = int(input("[0-6]:"))
+        #     prova.make_move(move)
+        # else:
+        mossa, value = prova.alphabeta(8)
         # print(prova.num_connected(mossa))
         prova.make_move(mossa)
         print(value)
