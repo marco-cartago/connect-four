@@ -5,6 +5,8 @@ MINPLAYER: int = -1
 MAXPLAYER: int = 1
 EMPTY: int = 0
 
+DEBUG_DEPTH: int = 5
+
 # Se self.has_ended è uguale a 2 allora è patta
 
 
@@ -38,7 +40,7 @@ class Board:
         Returns the current playing player (haha)
         """
         return MAXPLAYER if self.turn % 2 == 0 else MINPLAYER
-    
+
     def curr_player_name(self):
         """
         Returns the current playing player (haha)
@@ -67,8 +69,9 @@ class Board:
             raise Exception("Game already ended")
 
         if move not in self.legal_moves():
-            print(f'il giocatore {self.curr_player()} ha provato a giocare {move} nella posizione\n{str(self)}')
-            raise Exception("Illegal move :(")
+            s = f'Mossa illegale! Il giocatore {self.curr_player()} ha provato a giocare {
+                move} nella posizione\n{str(self)}'
+            raise Exception(s)
 
         curr_player = self.curr_player()
         row, col = self.column_limits[move], move
@@ -116,7 +119,7 @@ class Board:
         # Diagonale alto_sinistra -> basso_destra
         connected_points = 0
         for d in range(-3, 4):
-            if row - d < self.nrow and col + d >= 0 and  col + d < self.ncol and row - d > 0 :
+            if row - d < self.nrow and col + d >= 0 and col + d < self.ncol and row - d > 0:
                 if self.board[row - d, col + d] == curr_player:
                     connected_points += 1
                     if connected_points >= 4:
@@ -136,10 +139,10 @@ class Board:
             if move in self.legal_moves():
                 if verbose:
                     print(self)
-                for m in self.legal_moves():
-                    self.make_move(m)
-                    print(f"move {m} -> {self.has_ended}")
-                    self.undo_move()
+                    for m in self.legal_moves():
+                        self.make_move(m)
+                        print(f"move {m} -> {self.has_ended}")
+                        self.undo_move()
                 self.make_move(move)
 
                 if self.has_ended != 0:
@@ -213,8 +216,6 @@ class Board:
         # Mi serviva questo sleep solo per dei test, no capivo cosa non funzionava
         # time.sleep(60)
         return tot/8  # return moooolto provvisorio
-
-        pass
 
     def fast_eval(self) -> int:
         """
@@ -300,7 +301,7 @@ class Board:
                                 threats.add((r + i, c + i))
             # Diagonal (top-left to bottom-right) threats
             for r in range(3, self.nrow):
-                for c in range(self.ncol -3):
+                for c in range(self.ncol - 3):
                     window = [self.board[r-i, c+i] for i in range(4)]
                     if is_threat_window(window, player):
                         for i in range(4):
@@ -367,7 +368,10 @@ class Board:
         # Return the difference in threat scores
         return player1_score - player2_score
 
-    def minimax(self, depth) -> tuple[int, float]:
+    def minimax(self, depth, debug=False) -> tuple[int, float]:
+        """
+        Minimax.
+        """
         if self.has_ended == 1 or self.has_ended == -1:
             return (self.history[-1], float("inf")*self.has_ended)
 
@@ -375,36 +379,49 @@ class Board:
             return (self.history[-1], 0)
 
         if depth == 0:
-            return(self.history[-1], self.fast_eval() + self.threats_eval())
+            return (self.history[-1], self.fast_eval() + self.threats_eval())
 
         curr_pl = self.curr_player()
-        best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
+        # Set best move as a random (the first) legal move, update later
+        best_move = self.legal_moves()[0]
+        # Maxplayer
         if curr_pl == MAXPLAYER:
-            val = float("-inf")
+            best_val = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
+
                 _, new_val = self.minimax(depth - 1)
-                if depth == DEBUG_DEPTH:
-                    print(f"{move}:{new_val} player:{self.curr_player_name()} ")
-                if new_val > val:
-                    val = new_val
-                    best = move
+                if depth == DEBUG_DEPTH and debug:
+                    print(f"{move}:{new_val} player:{
+                          self.curr_player_name()} ")
+
+                if new_val > best_val:
+                    best_val = new_val
+                    best_move = move
+
                 self.undo_move()
+        # Minplayer
         else:
-            val = float('+inf')
+            best_val = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-                _, new_val = self.minimax(depth - 1)
-                if depth == DEBUG_DEPTH:
-                    print(f"{move}:{new_val} player:{self.curr_player_name()}")
-                if new_val < val:
-                    val = new_val
-                    best = move
-                self.undo_move()
-        
-        return (best, val)
 
-    def alphabeta(self, depth, alpha = -100000, beta = 100000) -> tuple[int, float]:
+                _, new_val = self.minimax(depth - 1)
+                if depth == DEBUG_DEPTH and debug:
+                    print(f"{move}:{new_val} player:{self.curr_player_name()}")
+
+                if new_val < best_val:
+                    best_val = new_val
+                    best_move = move
+
+                self.undo_move()
+
+        return (best_move, best_val)
+
+    def alphabeta(self, depth, alpha=-100000, beta=100000) -> tuple[int, float]:
+        """
+        Minimax with alpha-beta pruning.
+        """
         if self.has_ended == 1 or self.has_ended == -1:
             return (self.history[-1], float("inf")*self.has_ended)
 
@@ -412,36 +429,43 @@ class Board:
             return (self.history[-1], 0)
 
         if depth == 0:
-            return(self.history[-1], self.fast_eval() + self.threats_eval())
+            return (self.history[-1], self.fast_eval() + self.threats_eval())
 
         curr_pl = self.curr_player()
-        best = self.legal_moves()[0] # Set best move as a random (the first) legal move, update later
+        # Set best move as a random (the first) legal move, update later
+        best_move = self.legal_moves()[0]
+
         if curr_pl == MAXPLAYER:
-            a = float("-inf")
+            best_val = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
-                new_move, value = self.alphabeta(depth - 1, alpha, beta)
-                if value >= a:
-                    a = value
-                    best = new_move
+                _, value = self.alphabeta(depth - 1, alpha, beta)
                 self.undo_move()
-                alpha = max(alpha, value) # update lower bound
+
+                if value >= best_val:
+                    best_val = value
+                    best_move = move
+
+                alpha = max(alpha, value)  # update lower bound
                 if alpha > beta:
                     break
         else:
-            a = float('+inf')
+            best_val = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-                new_move, value = self.alphabeta(depth - 1, alpha, beta)
-                if value <= a:
-                    a = value
-                    best = new_move
+                _, value = self.alphabeta(depth - 1, alpha, beta)
                 self.undo_move()
-                beta = min(beta, value) # Update upper bound
+
+                if value <= best_val:
+                    best_val = value
+                    best_move = move
+
+                beta = min(beta, value)  # Update upper bound
                 if beta < alpha:
                     break
-        print(f"{best}:{a} ")
-        return (best, a)
+
+        # print(f"{best_move}:{best_val} ")
+        return (best_move, best_val)
 
 
 if __name__ == "__main__":
@@ -454,6 +478,8 @@ if __name__ == "__main__":
     # print(b.column_limits)
     # print(b)
 
+    time_ditribiution = []
+
     test = Board()
     while test.has_ended == 0:
         # print(test)
@@ -461,10 +487,14 @@ if __name__ == "__main__":
         #     x = input("Waiting for your move: ")
         #     test.make_move(int(x))
         # else:
-        DEBUG_DEPTH = 3
-        move = test.minimax(DEBUG_DEPTH)[0]
+        start = time.time()
+        move = test.alphabeta(DEBUG_DEPTH)[0]
+        end = time.time()
+        time_ditribiution.append(end-start)
         print("Played: ", move, "player", test.curr_player_name())
         test.make_move(move)
         print(test)
+
     print(test.history)
     print(test.has_ended)
+    print(time_ditribiution)
