@@ -119,7 +119,7 @@ class Board:
         # Diagonale alto_sinistra -> basso_destra
         connected_points = 0
         for d in range(-3, 4):
-            if row - d < self.nrow and col + d >= 0 and col + d < self.ncol and row - d > 0:
+            if row - d < self.nrow and col + d < self.ncol and col + d >= 0 and row - d > 0:
                 if self.board[row - d, col + d] == curr_player:
                     connected_points += 1
                     if connected_points >= 4:
@@ -389,8 +389,9 @@ class Board:
             best_val = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
-
                 _, new_val = self.minimax(depth - 1)
+                self.undo_move()
+
                 if depth == DEBUG_DEPTH and debug:
                     print(f"{move}:{new_val} player:{
                           self.curr_player_name()} ")
@@ -399,22 +400,20 @@ class Board:
                     best_val = new_val
                     best_move = move
 
-                self.undo_move()
         # Minplayer
         else:
             best_val = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-
                 _, new_val = self.minimax(depth - 1)
+                self.undo_move()
+
                 if depth == DEBUG_DEPTH and debug:
                     print(f"{move}:{new_val} player:{self.curr_player_name()}")
 
                 if new_val < best_val:
                     best_val = new_val
                     best_move = move
-
-                self.undo_move()
 
         return (best_move, best_val)
 
