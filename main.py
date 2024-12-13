@@ -7,13 +7,13 @@ EMPTY: int = 0
 
 # Se self.has_ended è uguale a 2 allora è patta
 map = np.array([[3, 4, 5, 7, 5, 4, 3],
-       [4, 6, 8, 10, 8, 6, 4],
-       [5, 7, 11, 13, 11, 7, 5],
-       [5, 7, 11, 13, 11, 7, 5],
-       [4, 6, 8, 10, 8, 6, 4],
-       [3, 4, 5, 7, 5, 4, 3]])
+                [4, 6, 8, 10, 8, 6, 4],
+                [5, 7, 11, 13, 11, 7, 5],
+                [5, 7, 11, 13, 11, 7, 5],
+                [4, 6, 8, 10, 8, 6, 4],
+                [3, 4, 5, 7, 5, 4, 3]])
 
-#Se self.has_ended è uguale a 2 allora è patta
+# Se self.has_ended è uguale a 2 allora è patta
 
 
 class Board:
@@ -47,7 +47,7 @@ class Board:
         Returns the current playing player (haha)
         """
         return MAXPLAYER if self.turn % 2 == 0 else MINPLAYER
-    
+
     def curr_player_name(self):
         """
         Returns the current playing player (haha)
@@ -88,7 +88,7 @@ class Board:
 
         # Verticale
         connected_points = 0
-        #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
+        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
         for crow in range(row - 3, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
@@ -174,7 +174,8 @@ class Board:
         last_move = self.history.pop()
         edit_row, edit_col = self.column_limits[last_move] - 1, last_move
 
-        self.save_value_table -= map[edit_row, edit_col]*self.board[edit_row, edit_col]
+        self.save_value_table -= map[edit_row,
+                                     edit_col]*self.board[edit_row, edit_col]
         # Remove the disc from the board
         self.board[edit_row, edit_col] = EMPTY
         # Decrease the column height
@@ -183,14 +184,14 @@ class Board:
         self.turn -= 1
         # Restore the previous situation
         self.has_ended = EMPTY
-    
+
     def num_connected(self, move) -> int:
         curr_player = self.curr_player()
         row, col = self.column_limits[move], move
         self.board[row, col] = curr_player
         connected_points = 0
         massimo = 0
-        #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
+        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
         for crow in range(row - 3, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
@@ -240,9 +241,9 @@ class Board:
                     connected_points = 0
 
         self.board[row, col] = EMPTY
-        massimo = max(massimo, connected_points) 
+        massimo = max(massimo, connected_points)
         return massimo*curr_player
-    
+
     def eval_2(self) -> float:
         if self.has_ended:
             return float("+inf")*self.has_ended
@@ -254,7 +255,7 @@ class Board:
         for col in legal_Moves:
             tmp = self.num_connected(col)
             tot += values[abs(tmp) - 1]*curr_player
-        
+
         # print(legal_Moves)
         values = [0, 0, 0, 4]
         self.turn += 1
@@ -271,19 +272,20 @@ class Board:
         return self.save_value_table
 
     def eval_possibilities(self) -> float:
-        #Allora, più o meno controllo ogni possibile mossa dove formo una riga e se quello dopo è una casella vuota allora va bene, altrimenti non va bene
-        #Questo solamente per quando posso formare 3 o 2, non mi importa quando formo 1
-        #Se formo 4, ovviamente ritorno infinito*curr_player
-        #Quindi se vedo 3 in fila e quello prima o quello dopo sono liberi, è un'ottima posizione
-        #Se vedo 2 in fila la situazione diventa più spinosa, perché devo controllare o 2 avanti, o 2 indietro o 1 avanti e 1 indietro
-        #Conto che sia meglio portare me in una situazione vantaggiosa che mettere in difficoltà l'avversario
-        #In futuro potrei fare una versione che controlla anche tra quante mosse potrei arrivare alla configurazione desiderata, dove se è 2 non conviene giocare la mossa di solito
-        
-        #Adesso mi manca da pensare: controllo per ogni mossa mia anche quella avversaria o no? O semplicemente conto come se l'avversario stia per giocare ma ci tolgo 1 (/lo setto a 3 se >= 4) perché non è ancora così pericoloso?
-        #Al momento farei solamente il secondo, poi in caso vedo come funziona
-        #Iniziamo con controllare solo per me
+        # Allora, più o meno controllo ogni possibile mossa dove formo una riga e se quello dopo è una casella vuota allora va bene, altrimenti non va bene
+        # Questo solamente per quando posso formare 3 o 2, non mi importa quando formo 1
+        # Se formo 4, ovviamente ritorno infinito*curr_player
+        # Quindi se vedo 3 in fila e quello prima o quello dopo sono liberi, è un'ottima posizione
+        # Se vedo 2 in fila la situazione diventa più spinosa, perché devo controllare o 2 avanti, o 2 indietro o 1 avanti e 1 indietro
+        # Conto che sia meglio portare me in una situazione vantaggiosa che mettere in difficoltà l'avversario
+        # In futuro potrei fare una versione che controlla anche tra quante mosse potrei arrivare alla configurazione desiderata, dove se è 2 non conviene giocare la mossa di solito
+
+        # Adesso mi manca da pensare: controllo per ogni mossa mia anche quella avversaria o no? O semplicemente conto come se l'avversario stia per giocare ma ci tolgo 1 (/lo setto a 3 se >= 4) perché non è ancora così pericoloso?
+        # Al momento farei solamente il secondo, poi in caso vedo come funziona
+        # Iniziamo con controllare solo per me
         curr_player = self.curr_player()
-        if self.legal_moves() is None or len(self.legal_moves()) == 0:   return 0
+        if self.legal_moves() is None or len(self.legal_moves()) == 0:
+            return 0
         values = [0, 0, 1, 3]
         adv_values = [0, 0, 0, 0.5, 2, 2, 2, 2, 2, 2, 2, 2]
         tot = 0
@@ -291,7 +293,7 @@ class Board:
             row, col = self.column_limits[r], r
             self.board[row, col] = curr_player
             self.column_limits[col] += 1
-            #Controlli :(
+            # Controlli :(
             counter = 0
             for rrow in range(row - 3, row + 4):
                 if rrow >= 0 and rrow < self.nrow:
@@ -325,7 +327,7 @@ class Board:
                         elif rrow - counter - 2 >= 0:
                             if self.board[rrow - counter - 2, col] == 0:
                                 tot += values[counter]*curr_player
-            
+
             counter = 0
             for ccol in range(col - 3, col + 4):
                 if ccol >= 0 and ccol < self.ncol:
@@ -371,7 +373,7 @@ class Board:
                         if row + d - counter - 1 >= 0 and col + d - counter - 1 >= 0:
                             if self.board[row + d - counter - 1, col + d - counter - 1] == 0:
                                 if counter == 3:
-                                    tot +=  values[counter]*curr_player
+                                    tot += values[counter]*curr_player
                                 elif row + d - counter - 2 >= 0 and col + d - counter - 2 >= 0:
                                     if self.board[row + d - counter - 2, col + d - counter - 2] == 0:
                                         tot += values[counter]*curr_player
@@ -382,7 +384,7 @@ class Board:
                 elif row + d - counter - 1 >= 0 and col + d - counter - 1 >= 0 and row + d < self.nrow and col + d < self.ncol:
                     if self.board[row + d - counter - 1, col + d - counter - 1] == 0:
                         if counter == 3:
-                            tot +=  values[counter]*curr_player
+                            tot += values[counter]*curr_player
                         elif row + d - counter - 2 >= 0 and col + d - counter - 2 >= 0:
                             if self.board[row + d - counter - 2, col + d - counter - 2] == 0:
                                 tot += values[counter]*curr_player
@@ -398,7 +400,7 @@ class Board:
                         if row + d - counter - 1 >= 0 and col - d - counter - 1 >= 0:
                             if self.board[row + d - counter - 1, col - d - counter - 1] == 0:
                                 if counter == 3:
-                                    tot +=  values[counter]*curr_player
+                                    tot += values[counter]*curr_player
                                 elif row + d - counter - 2 >= 0 and col - d - counter - 2 >= 0:
                                     if self.board[row + d - counter - 2, col - d - counter - 2] == 0:
                                         tot += values[counter]*curr_player
@@ -406,23 +408,23 @@ class Board:
                                     tot += values[counter]*curr_player
                     else:
                         counter += 1
-                elif row + d - counter - 1 >= 0 and col - d - counter - 1 >= 0 and row + d < self.nrow and col - d <self.ncol:
+                elif row + d - counter - 1 >= 0 and col - d - counter - 1 >= 0 and row + d < self.nrow and col - d < self.ncol:
                     if self.board[row + d - counter - 1, col - d - counter - 1] == 0:
                         if counter == 3:
-                            tot +=  values[counter]*curr_player
+                            tot += values[counter]*curr_player
                         elif row + d - counter - 2 >= 0 and col - d - counter - 2 >= 0:
                             if self.board[row + d - counter - 2, col - d - counter - 2] == 0:
                                 tot += values[counter]*curr_player
-                                    
+
             self.board[row, col] = EMPTY
             self.column_limits[col] -= 1
-        
+
         curr_player = -curr_player
         for r in self.legal_moves():
             row, col = self.column_limits[r], r
             self.board[row, col] = curr_player
             self.column_limits[col] += 1
-            #Controlli :(
+            # Controlli :(
             counter = 0
             for rrow in range(row - 3, row + 4):
                 if rrow >= 0 and rrow < self.nrow:
@@ -454,7 +456,7 @@ class Board:
                         elif rrow - counter - 2 >= 0:
                             if self.board[rrow - counter - 2, col] == 0:
                                 tot -= adv_values[counter]*curr_player
-            
+
             counter = 0
             for ccol in range(col - 3, col + 4):
                 if ccol >= 0 and ccol < self.ncol:
@@ -496,7 +498,7 @@ class Board:
                         if row + d - counter - 1 >= 0 and col + d - counter - 1 >= 0:
                             if self.board[row + d - counter - 1, col + d - counter - 1] == 0:
                                 if counter == 3:
-                                    tot -=  adv_values[counter]*curr_player
+                                    tot -= adv_values[counter]*curr_player
                                 elif row + d - counter - 2 >= 0 and col + d - counter - 2 >= 0:
                                     if self.board[row + d - counter - 2, col + d - counter - 2] == 0:
                                         tot -= adv_values[counter]*curr_player
@@ -507,7 +509,7 @@ class Board:
                 elif row + d - counter - 1 >= 0 and col + d - counter - 1 >= 0 and row + d < self.nrow and col + d < self.ncol:
                     if self.board[row + d - counter - 1, col + d - counter - 1] == 0:
                         if counter == 3:
-                            tot -=  adv_values[counter]*curr_player
+                            tot -= adv_values[counter]*curr_player
                         elif row + d - counter - 2 >= 0 and col + d - counter - 2 >= 0:
                             if self.board[row + d - counter - 2, col + d - counter - 2] == 0:
                                 tot -= adv_values[counter]*curr_player
@@ -521,7 +523,7 @@ class Board:
                         if row + d - counter - 1 >= 0 and col - d - counter - 1 >= 0:
                             if self.board[row + d - counter - 1, col - d - counter - 1] == 0:
                                 if counter == 3:
-                                    tot -=  adv_values[counter]*curr_player
+                                    tot -= adv_values[counter]*curr_player
                                 elif row + d - counter - 2 >= 0 and col - d - counter - 2 >= 0:
                                     if self.board[row + d - counter - 2, col - d - counter - 2] == 0:
                                         tot -= adv_values[counter]*curr_player
@@ -532,11 +534,11 @@ class Board:
                 elif row + d - counter - 1 >= 0 and col - d - counter - 1 >= 0 and row + d < self.nrow and col - d < self.ncol:
                     if self.board[row + d - counter - 1, col - d - counter - 1] == 0:
                         if counter == 3:
-                            tot -=  adv_values[counter]*curr_player
+                            tot -= adv_values[counter]*curr_player
                         elif row + d - counter - 2 >= 0 and col - d - counter - 2 >= 0:
                             if self.board[row + d - counter - 2, col - d - counter - 2] == 0:
                                 tot -= adv_values[counter]*curr_player
-                                    
+
             self.board[row, col] = EMPTY
             self.column_limits[col] -= 1
         return tot
@@ -555,25 +557,29 @@ class Board:
                 for c in range(self.ncol - 3):
                     window = self.board[r, c:c+4]
                     if is_valid_window(window, player):
-                        count += relative_worth(window, player, (r,c), (r,c+3))
+                        count += relative_worth(window,
+                                                player, (r, c), (r, c+3))
             # Vertical
             for r in range(self.nrow - 3):
                 for c in range(self.ncol):
                     window = self.board[r:r+4, c]
                     if is_valid_window(window, player):
-                        count += relative_worth(window, player, (r,c), (r+3,c))
+                        count += relative_worth(window,
+                                                player, (r, c), (r+3, c))
             # Diagonal (top-left to bottom-right)
             for r in range(self.nrow - 3):
                 for c in range(self.ncol - 3):
                     window = [self.board[r+i, c+i] for i in range(4)]
                     if is_valid_window(window, player):
-                        count += relative_worth(window, player, (r,c), (r+3,c+3))
+                        count += relative_worth(window,
+                                                player, (r, c), (r+3, c+3))
             # Diagonal (top-right to bottom-left)
             for r in range(self.nrow - 3):
                 for c in range(3, self.ncol):
                     window = [self.board[r+i, c-i] for i in range(4)]
                     if is_valid_window(window, player):
-                        count += relative_worth(window, player, (r,c), (r+3,c-3))
+                        count += relative_worth(window,
+                                                player, (r, c), (r+3, c-3))
             return count
 
         def is_valid_window(window, player):
@@ -593,16 +599,24 @@ class Board:
             """
             res = []
             for cell in window:
-                if cell == -player: return 0
-                elif cell == 0: res.append(0)
-                elif cell == player: res.append(1)
+                if cell == -player:
+                    return 0
+                elif cell == 0:
+                    res.append(0)
+                elif cell == player:
+                    res.append(1)
             res = sum(res)
-            if res == 0:return 0
-            elif res == 1: return 1
-            elif res == 2: return 3
-            elif res == 3: return 8
-            elif res == 4: return 10000
-             
+            if res == 0:
+                return 0
+            elif res == 1:
+                return 1
+            elif res == 2:
+                return 3
+            elif res == 3:
+                return 8
+            elif res == 4:
+                return 10000
+
         def relative_worth(window, player, start, end):
             """
             Function that comutes the worth of a window and relates it
@@ -610,11 +624,13 @@ class Board:
             'start' and 'end' are the coordinates of the extremes of the window (used to locate it)
             """
             res = value_of_window(window, player)
-            if res == 0: # End if window has no value
+            if res == 0:  # End if window has no value
                 return res
             # Compute indexes of squares in the window to later evaluate how 'high' empty squares are
-            rows = np.linspace(start[0], end[0], 4) if start[0] != end[0] else [start[0] for _ in range(4)]
-            cols = np.linspace(start[1], end[1], 4) if start[1] != end[1] else [start[1] for _ in range(4)]
+            rows = np.linspace(start[0], end[0], 4) if start[0] != end[0] else [
+                start[0] for _ in range(4)]
+            cols = np.linspace(start[1], end[1], 4) if start[1] != end[1] else [
+                start[1] for _ in range(4)]
             rows, cols = [int(r) for r in rows], [int(c) for c in cols]
 
             # Count how many tiles have been placed on each column
@@ -622,11 +638,14 @@ class Board:
             # For each column that contains a zero, compute how far we are from the bottom
             depth = []
             for col, row in zip(cols, rows):
-                if self.board[row,col] == 0:
-                    depth.append((row-1) - bottom[col]) # row-1 for later computations (can i place a tile in the window right now?)
+                if self.board[row, col] == 0:
+                    # row-1 for later computations (can i place a tile in the window right now?)
+                    depth.append((row-1) - bottom[col])
             # If the window is 'far' from completition, assign less value
-            depth = sum(depth) # Total of distances from being able to place a tile in the window
-            return res * (0.9)**depth # Decay factor of 0.9 the further the winning window is
+            # Total of distances from being able to place a tile in the window
+            depth = sum(depth)
+            # Decay factor of 0.9 the further the winning window is
+            return res * (0.9)**depth
 
         # Count potential sequences for each player
         max_count = count_open_sequences(1)
@@ -739,21 +758,21 @@ class Board:
         return max_score - min_score
 
     def minimax(self, depth) -> tuple[int, float]:
-        #Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
+        # Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0 or len(self.legal_moves()) == 0:
             return self.history[-1], self.eval_possibilities() + self.eval_Chiorri()
-        
+
         if self.legal_moves() is None:
             return self.history[-1], 0
 
         curr_pl = self.curr_player()
         best = self.legal_moves()[0]
-        
+
         if curr_pl == MAXPLAYER:
             a = float("-inf")
             for move in self.legal_moves():
                 self.make_move(move)
-                mossa, value = self.minimax(depth - 1)
+                _, value = self.minimax(depth - 1)
                 if value > a:
                     a = value
                     best = move
@@ -762,7 +781,7 @@ class Board:
             a = float('+inf')
             for move in self.legal_moves():
                 self.make_move(move)
-                mossa, value = self.minimax(depth - 1)
+                _, value = self.minimax(depth - 1)
                 if value < a:
                     a = value
                     best = move
@@ -770,15 +789,18 @@ class Board:
         return best, a
 
     def alphabeta(self, depth, alpha=float('-inf'), beta=float('inf')) -> tuple[int, float]:
+
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
             return self.history[-1], self.eval_possibilities() + self.eval_Chiorri()
-        
+
         moves = self.legal_moves()
+
         if moves is None or len(moves) == 0:
-            return 0
+            return self.history[-1], 0
+
         curr_pl = self.curr_player()
         best = moves[0]
-        
+
         if curr_pl == MAXPLAYER:
             value = float('-inf')
             for move in moves:
@@ -803,7 +825,7 @@ class Board:
                 self.undo_move()
                 if alpha >= beta:
                     break
-        
+
         return best, value
 
 
@@ -824,10 +846,10 @@ if __name__ == "__main__":
     prova = Board()
     while prova.has_ended == 0:
         print(prova)
-        mossa, value = prova.alphabeta(8)
-        #print(prova.num_connected(mossa))
+        mossa, value = prova.alphabeta(5)
+        # print(prova.num_connected(mossa))
         prova.make_move(mossa)
         print(value)
-            
+
     print(prova)
     print(prova.has_ended)
