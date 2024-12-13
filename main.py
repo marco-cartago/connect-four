@@ -5,6 +5,7 @@ MINPLAYER: int = -1
 MAXPLAYER: int = 1
 EMPTY: int = 0
 
+# Se self.has_ended è uguale a 2 allora è patta
 map = np.array([[3, 4, 5, 7, 5, 4, 3],
        [4, 6, 8, 10, 8, 6, 4],
        [5, 7, 11, 13, 11, 7, 5],
@@ -45,37 +46,13 @@ class Board:
         """
         Returns the current playing player (haha)
         """
-        return MAXPLAYER if self.turn % 2 else MINPLAYER
-
-    def is_terminal(self) -> int:
+        return MAXPLAYER if self.turn % 2 == 0 else MINPLAYER
+    
+    def curr_player_name(self):
         """
-        Checks if a given board configuration is a terminal state
-
-        Returns:
-            - +1  MINPLAYER if the board configuration is a win for MINPLAYER
-            - -1  MAXPLAYER if the board configuration is a win for MAXPLAYER
-            -  0  if the game is not over yet
+        Returns the current playing player (haha)
         """
-        for i in range(self.nrow - 3):
-            for j in range(self.ncol - 3):
-                if self.board[i, j] == 0:
-                    continue
-                if self.board[i, j] == MINPLAYER and self.board[i, j + 1] == MINPLAYER and self.board[i, j + 2] == MINPLAYER and self.board[i, j + 3] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i, j] == MINPLAYER and self.board[i + 1, j + 1] == MINPLAYER and self.board[i + 2, j + 2] == MINPLAYER and self.board[i + 3, j + 3] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i, j] == MINPLAYER and self.board[i + 1, j] == MINPLAYER and self.board[i + 2, j] == MINPLAYER and self.board[i + 3, j] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i + 3, j] == MINPLAYER and self.board[i + 2, j + 1] == MINPLAYER and self.board[i + 1, j + 2] == MINPLAYER and self.board[i, j + 3] == MINPLAYER:
-                    return MINPLAYER
-                elif self.board[i, j] == MAXPLAYER and self.board[i, j + 1] == MAXPLAYER and self.board[i, j + 2] == MAXPLAYER and self.board[i, j + 3] == MAXPLAYER:
-                    return MAXPLAYER
-                elif self.board[i, j] == MAXPLAYER and self.board[i + 1, j + 1] == MAXPLAYER and self.board[i + 2, j + 2] == MAXPLAYER and self.board[i + 3, j + 3] == MAXPLAYER:
-                    return MAXPLAYER
-                elif self.board[i, j] == MAXPLAYER and self.board[i + 1, j] == MAXPLAYER and self.board[i + 2, j] == MAXPLAYER and self.board[i + 3, j] == MAXPLAYER:
-                    return MAXPLAYER
-                elif self.board[i + 3, j] == MAXPLAYER and self.board[i + 2, j + 1] == MAXPLAYER and self.board[i + 1, j + 2] == MAXPLAYER and self.board[i, j + 3] == MAXPLAYER:
-                    return MAXPLAYER
+        return "MAXPLAYER" if self.turn % 2 == 0 else "MINPLAYER"
 
     def legal_moves(self) -> np.ndarray:
         """
@@ -92,8 +69,8 @@ class Board:
     def make_move(self, move: int) -> None:
         """
         Updates the current board rappresentation given the move: the column in which 
-        to drop the piece. This function incrementally checks if the given move ends the game
-        connecting four or more.
+        to drop the piece. This function incrementally checks if the given move ends
+        the game connecting four or more.
         """
         if self.has_ended != 0:
             raise Exception("Game already ended")
@@ -109,6 +86,7 @@ class Board:
         self.history.append(move)
         self.turn += 1
 
+        # Verticale
         connected_points = 0
         #Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
         for crow in range(row - 3, row + 4):
@@ -121,6 +99,7 @@ class Board:
                 else:
                     connected_points = 0
 
+        # Orrizzontale
         connected_points = 0
         for ccol in range(col - 3, col + 4):
             if ccol < self.ncol and ccol >= 0:
@@ -132,6 +111,7 @@ class Board:
                 else:
                     connected_points = 0
 
+        # Diagonale basso_sinistra -> alto_destra
         connected_points = 0
 
         #!! 2 CICLI FOR SONO DA TOGLIERE, MA AL MOMENTO NON SO QUALI
@@ -146,6 +126,7 @@ class Board:
                 else:
                     connected_points = 0
 
+        # Diagonale alto_sinistra -> basso_destra
         connected_points = 0
         for d in range(-3, 4):
             if row + d < self.nrow and col - d >= 0 and col - d < self.ncol and row + d >= 0:
@@ -156,17 +137,9 @@ class Board:
                         return
                 else:
                     connected_points = 0
-        
-        if self.legal_moves == None:
+
+        if self.legal_moves() is None:
             self.has_ended = 2
-
-        # Rendere anche la generazione delle mosse di forza quattro incementale
-        # ogni volta prendo il max() della sequenza di vicini più lunga delle teste
-        # che "faccio crescere" a quel punto mi basta controllare se il max(...) locale
-        # arriva a 4.
-
-        # Probabilmente ha senso farlo solo in versioni generalizzate del gioco in cui ho
-        # sequenze arbitrarie da controllare
 
     def make_move_sequence(self, move_list: list[int], verbose: bool = False) -> None:
         """
@@ -176,8 +149,14 @@ class Board:
             if move in self.legal_moves():
                 if verbose:
                     print(self)
+                for m in self.legal_moves():
+                    self.make_move(m)
+                    print(f"move {m} -> {self.has_ended}")
+                    self.undo_move()
                 self.make_move(move)
-                if self.has_ended != 0: break
+
+                if self.has_ended != 0:
+                    break
             else:
                 raise Exception(f"Illegl move {move}")
 
