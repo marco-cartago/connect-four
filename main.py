@@ -761,7 +761,7 @@ class Board:
         return max_score - min_score
 
     def eval_brullen(self):
-        return self.threats_eval()  # + self.connections_eval()
+        return self.threats_eval() + self.connections_eval()
 
     def eval_caco(self) -> float:
         if self.has_ended != 2:
@@ -956,10 +956,13 @@ class Board:
         return best, value
 
     def gen_move(self, base_depth: int = 7, eur=(lambda x: x.eval_chiorri())):
-        depth = (base_depth
-                 if self.turn >= 15
-                 else min(base_depth + 10 + (self.turn - 15), 30)
-                 )
+        if eur ==(lambda x: x.eval_brullen()):
+            depth = base_depth
+        else:
+            depth = (base_depth
+                     if self.turn <= 15
+                     else min(base_depth + 10 + (self.turn - 15), 30)
+                    )
         move, _ = self.alphabeta(
             depth,
             evaluation=eur
@@ -997,7 +1000,8 @@ if __name__ == "__main__":
         else:
             start = time.time()
             mossa = prova.gen_move(
-                eur=(lambda x: x.eval_chiorri())
+                base_depth= 5,
+                eur=(lambda x: x.eval_brullen())
             )
             prova.make_move(mossa)
             end = time.time()
