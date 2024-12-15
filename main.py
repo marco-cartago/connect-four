@@ -761,7 +761,7 @@ class Board:
         return max_score - min_score
 
     def eval_brullen(self):
-        return self.connections_eval() + self.threats_eval()
+        return self.threats_eval() # + self.connections_eval()
 
     def eval_cartago(self) -> float:
         if self.has_ended == 1:
@@ -950,7 +950,7 @@ class Board:
         return best, value
 
     def gen_move(self, eur=(lambda x: x.eval_chiorri())):
-        depth = 7 if self.turn >= 15 else min(17 + (self.turn - 15), 30)
+        depth = 6 if self.turn >= 15 else min(17 + (self.turn - 15), 30)
         move, _ = self.alphabeta(
             depth,
             evaluation=eur
@@ -978,19 +978,16 @@ if __name__ == "__main__":
         print(prova.turn)
         if prova.curr_player() == MAXPLAYER:
             start = time.time()
-            mossa = prova.gen_move()
+            mossa = prova.gen_move(eur = lambda x: x.eval_brullen())
             end = time.time()
             print(f"Elapsed {end - start}")
             prova.make_move(mossa)
         else:
             start = time.time()
-            mossa, value = prova.alphabeta(
-                8,
-                evaluation=(lambda x: x.eval_cartago())
-            )
-            prova.make_move(mossa)
+            mossa = prova.gen_move(eur = lambda x: x.eval_cartago())
             end = time.time()
             print(f"Elapsed {end - start}")
+            prova.make_move(mossa)
             # print(value)
 
     # print(prova)
