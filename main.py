@@ -758,6 +758,9 @@ class Board:
         # Return the difference in threat scores
         return max_score - min_score
 
+def eval_brullen(self):
+    return connections_eval() + threats_eval()
+
     def eval_cartago(self) -> float:
         if self.has_ended == 1:
             return float("inf")
