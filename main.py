@@ -859,11 +859,11 @@ class Board:
                 self.make_move(move)
                 _, score = self.alphabeta(
                     depth - 1, alpha, beta, evaluation=evaluation)
+                self.undo_move()
                 if score > value:
                     value = score
                     best = move
                 alpha = max(alpha, value)
-                self.undo_move()
                 if alpha >= beta:
                     break
         else:
@@ -872,11 +872,11 @@ class Board:
                 self.make_move(move)
                 _, score = self.alphabeta(
                     depth - 1, alpha, beta, evaluation=evaluation)
+                self.undo_move()
                 if score < value:
                     value = score
                     best = move
                 beta = min(beta, value)
-                self.undo_move()
                 if alpha >= beta:
                     break
 
@@ -955,51 +955,51 @@ class Board:
 
         return best, value
 
-    def gen_move(self, base_depth: int = 7, eur=(lambda x: x.eval_chiorri())):
-        if eur == (lambda x: x.eval_brullen()):
-            depth = base_depth
-        else:
-            depth = (base_depth
-                     if self.turn <= 15
-                     else min(base_depth + 10 + (self.turn - 15), 30)
-                     )
+    def gen_move(self, base_depth: int = 8, eur=(lambda x: x.eval_chiorri())):
+        depth = (base_depth
+                 if self.turn <= 15
+                 else min(base_depth + int(self.turn - 15), 30)
+                 )
         move, val = self.alphabeta(
             depth,
             evaluation=eur
         )
+        print(f"Depth {depth}")
         print(f"Evaluation: {val}")
         return move
 
 
 if __name__ == "__main__":
 
+    # b = Board()
+    # b.make_move_sequence([4, 3, 3, 3, 3, 3, 2, 3, 4, 2, 2, 2, 1, 1, 4, 4, 4, 2, 2, 4])
+
     prova = Board()
 
     while prova.has_ended == 0:
 
         print(prova)
-        print(prova.turn, prova.curr_player_name())
+        print(f"Move: {prova.turn} Plays: {prova.curr_player_name()}")
 
         if prova.curr_player() == MAXPLAYER:
             start = time.time()
             mossa = prova.gen_move(
-                eur=(lambda x: x.eval_brullen())
+                eur=(lambda x: x.eval_chiorri())
             )
             end = time.time()
-            print(f"Elapsed {end - start}")
+            print(f"Elapsed: {end - start}")
             prova.make_move(mossa)
 
         else:
             start = time.time()
             mossa = prova.gen_move(
-                base_depth=5,
-                eur=(lambda x: x.eval_brullen())
+                eur=(lambda x: x.eval_chiorri())
             )
             prova.make_move(mossa)
             end = time.time()
-            print(f"Elapsed {end - start}")
+            print(f"Elapsed: {end - start}")
 
-        print(prova)
+    print(prova)
 
     # print(prova)
     print()
