@@ -7,7 +7,7 @@ MAXPLAYER: int = 1
 EMPTY: int = 0
 
 # Se self.has_ended è uguale a 2 allora è patta
-map = np.array([[3, 4, 5, 7, 5, 4, 3],
+MAP = np.array([[3, 4, 5, 7, 5, 4, 3],
                 [4, 6, 8, 10, 8, 6, 4],
                 [5, 7, 11, 13, 11, 7, 5],
                 [5, 7, 11, 13, 11, 7, 5],
@@ -83,13 +83,12 @@ class Board:
         row, col = self.column_limits[move], move
         self.board[row, col] = curr_player
         self.column_limits[col] += 1
-        self.save_value_table += map[row, col]*curr_player
+        self.save_value_table += MAP[row, col]*curr_player
         self.history.append(move)
         self.turn += 1
 
         # Verticale
         connected_points = 0
-        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
         for crow in range(row - 3, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
@@ -149,7 +148,7 @@ class Board:
         last_move = self.history.pop()
         edit_row, edit_col = self.column_limits[last_move] - 1, last_move
 
-        self.save_value_table -= map[edit_row,
+        self.save_value_table -= MAP[edit_row,
                                      edit_col]*self.board[edit_row, edit_col]
         # Remove the disc from the board
         self.board[edit_row, edit_col] = EMPTY
@@ -160,57 +159,41 @@ class Board:
         # Restore the previous situation
         self.has_ended = EMPTY
 
-    def eventPerson(self, event, window):
-        self.make_move(event.x//100)
-        mossa = self.gen_move(
-            base_depth=8,
-            eur=(lambda x: x.eval_chiorri())
-        )
-        self.make_move(mossa)
-        window.destroy()
-        self.gui()
-        return
-
-    def gui(self):
-        root = tk.Tk()
-        root.title("Connect Four")
-        root.geometry("700x600")
-        root.configure(bg="blue")
-        canvas = tk.Canvas(root, bg="blue", highlightthickness=0)
-        canvas.pack(fill=tk.BOTH, expand=True)
-        canvas.bind("<Button-1>", lambda event: self.eventPerson(event, root))
-        #Credo che metterò qui per la parte di dove inserire
-        for i, j in enumerate(self.board[::-1]):
-            for k, l in enumerate(j):
-                x = 50 + k * 100
-                y = 50 + i * 100
-                if l == 1:
-                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="red", outline="red")
-                elif l == -1:
-                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="yellow", outline="yellow")
-                else:
-                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="white", outline="white")
-        root.mainloop()
-        
     # Heuristics
 
-    def eval_chiorri(self) -> float:
+    def eval_position(self) -> float:
+        """
+        Uses a precalculated value that is updated with each move.
+        Closely related to the nummber of ways one can win in that square.
+        """
         if self.has_ended:
             return float("+inf")*self.has_ended
         return self.save_value_table
 
     def eval_possibilities(self) -> float:
-        # Allora, più o meno controllo ogni possibile mossa dove formo una riga e se quello dopo è una casella vuota allora va bene, altrimenti non va bene
-        # Questo solamente per quando posso formare 3 o 2, non mi importa quando formo 1
-        # Se formo 4, ovviamente ritorno infinito*curr_player
-        # Quindi se vedo 3 in fila e quello prima o quello dopo sono liberi, è un'ottima posizione
-        # Se vedo 2 in fila la situazione diventa più spinosa, perché devo controllare o 2 avanti, o 2 indietro o 1 avanti e 1 indietro
-        # Conto che sia meglio portare me in una situazione vantaggiosa che mettere in difficoltà l'avversario
-        # In futuro potrei fare una versione che controlla anche tra quante mosse potrei arrivare alla configurazione desiderata, dove se è 2 non conviene giocare la mossa di solito
+        """
+        Allora, più o meno controllo ogni possibile mossa dove formo una riga e se quello dopo è una 
+        casella vuota allora va bene, altrimenti non va bene. 
+        Questo solamente per quando posso formare 3 o 2, non mi importa quando formo 1. 
 
-        # Adesso mi manca da pensare: controllo per ogni mossa mia anche quella avversaria o no? O semplicemente conto come se l'avversario stia per giocare ma ci tolgo 1 (/lo setto a 3 se >= 4) perché non è ancora così pericoloso?
-        # Al momento farei solamente il secondo, poi in caso vedo come funziona
-        # Iniziamo con controllare solo per me
+
+        Se formo 4, ovviamente ritorno infinito*curr_player
+        Quindi se vedo 3 in fila e quello prima o quello dopo sono liberi, è un'ottima posizione
+
+
+        Se vedo 2 in fila la situazione diventa più spinosa, perché devo controllare o 2 avanti, 
+        o 2 indietro o 1 avanti e 1 indietro.
+
+
+        Conto che sia meglio portare me in una situazione vantaggiosa che mettere in difficoltà 
+        l'avversario. In futuro potrei fare una versione che controlla anche tra quante mosse potrei 
+        arrivare alla configurazione desiderata, dove se è 2 non conviene giocare la mossa di solito.
+
+        Adesso mi manca da pensare: controllo per ogni mossa mia anche quella avversaria o no? 
+        O semplicemente conto come se l'avversario stia per giocare ma ci 
+        tolgo 1 (/lo setto a 3 se >= 4) perché non è ancora così pericoloso?
+
+        """
         curr_player = self.curr_player()
         if self.legal_moves() is None or len(self.legal_moves()) == 0:
             return 0
@@ -688,7 +671,7 @@ class Board:
     def eval_brullen(self):
         return self.threats_eval() + self.connections_eval()
 
-    def eval_caco(self) -> float:
+    def eval_simple(self) -> float:
         if self.has_ended != 2:
             return self.has_ended
         else:
@@ -721,16 +704,19 @@ class Board:
             cscore = mboard.sum(axis=1)
             # Combination
             score = (np.max(cscore) + np.min(cscore) +
-                     np.max(rscore) + np.min(rscore))
-            #  np.max(diagonal_sums) + np.min(diagonal_sums) +
-            #  np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
+                     np.max(rscore) + np.min(rscore) +
+                     np.max(diagonal_sums) + np.min(diagonal_sums) +
+                     np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
 
             return score
 
     # Tree search
 
     def minimax(self, depth) -> tuple[int, float]:
-        # Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
+        """
+        Minimax!
+        """
+
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0 or len(self.legal_moves()) == 0:
             return self.history[-1], self.eval_possibilities() + self.eval_Chiorri()
 
@@ -766,6 +752,9 @@ class Board:
                   beta=float('inf'),
                   evaluation=(lambda x: 0)
                   ) -> tuple[int, float]:
+        """
+        Minimax with alphabeta pruning!
+        """
 
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
             return self.history[-1], evaluation(self)
@@ -807,24 +796,24 @@ class Board:
 
         return best, value
 
-    def gen_move(self, base_depth: int = 7, eur=(lambda x: x.eval_chiorri())):
+    def gen_move(self,
+                 base_depth: int = 8,
+                 eur=(lambda x: x.eval_position())):
+
         depth = (base_depth
-                 if self.turn <= 15
-                 else min(base_depth + int(self.turn - 15), 30)
+                 if self.turn <= 10
+                 else min(base_depth + int((self.turn - 10)/2), 30)
                  )
-        move, val = self.alphabeta(
+
+        move, _ = self.alphabeta(
             depth,
             evaluation=eur
         )
-        # print(f"Depth {depth}")
-        # print(f"Evaluation: {val}")
+
         return move
 
 
 if __name__ == "__main__":
-
-    # b = Board()
-    # b.make_move_sequence([4, 3, 3, 3, 3, 3, 2, 3, 4, 2, 2, 2, 1, 1, 4, 4, 4, 2, 2, 4])
 
     game_board = Board()
     game_board.gui()
@@ -845,20 +834,15 @@ if __name__ == "__main__":
             while move not in lm:
                 move = input(f"{lm}> ")
             game_board.make_move(move)
-            print("\n")
         else:
             start = time.time()
-            mossa = game_board.gen_move(
-                base_depth=8,
-                eur=(lambda x: x.eval_chiorri())
-            )
+            mossa = game_board.gen_move(base_depth=8)
             game_board.make_move(mossa)
             end = time.time()
-            print(f"Elapsed: {end - start}")
+            # print(f"Elapsed: {end - start}")
 
     print(game_board)
 
-    # print(prova)
     print()
-    print("MAX" if game_board.has_ended == 1 else (
-        "NONE" if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN"))
+    print("MAX WON" if game_board.has_ended == 1 else (
+        "DRAW"if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN WON"))
