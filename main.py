@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import tkinter as tk
 
 MINPLAYER: int = -1
 MAXPLAYER: int = 1
@@ -141,32 +142,6 @@ class Board:
         if self.legal_moves() is None:
             self.has_ended = 2
 
-    def make_move_sequence(self, move_list: list[int], verbose: bool = False) -> None:
-        """
-        Plays a sequence of moves on the board
-        """
-        for move in move_list:
-            if move in self.legal_moves():
-                if verbose:
-                    print(self)
-                for m in self.legal_moves():
-                    self.make_move(m)
-                    print(f"move {m} -> {self.has_ended}")
-                    self.undo_move()
-                self.make_move(move)
-
-                if self.has_ended != 0:
-                    break
-            else:
-                raise Exception(f"Illegl move {move}")
-
-    def undo_move_sequence(self, move_num: int) -> None:
-        """
-        Undoes a sequence of moves on the board
-        """
-        for _ in range(move_num):
-            self.undo_move()
-
     def undo_move(self) -> None:
         """
         Undoes the last move
@@ -185,89 +160,39 @@ class Board:
         # Restore the previous situation
         self.has_ended = EMPTY
 
+    def eventPerson(self, event, window):
+        self.make_move(event.x//100)
+        mossa = self.gen_move(
+            base_depth=8,
+            eur=(lambda x: x.eval_chiorri())
+        )
+        self.make_move(mossa)
+        window.destroy()
+        self.gui()
+        return
+
+    def gui(self):
+        root = tk.Tk()
+        root.title("Connect Four")
+        root.geometry("700x600")
+        root.configure(bg="blue")
+        canvas = tk.Canvas(root, bg="blue", highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
+        canvas.bind("<Button-1>", lambda event: self.eventPerson(event, root))
+        #Credo che metterò qui per la parte di dove inserire
+        for i, j in enumerate(self.board[::-1]):
+            for k, l in enumerate(j):
+                x = 50 + k * 100
+                y = 50 + i * 100
+                if l == 1:
+                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="red", outline="red")
+                elif l == -1:
+                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="yellow", outline="yellow")
+                else:
+                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="white", outline="white")
+        root.mainloop()
+        
     # Heuristics
-
-    def num_connected(self, move) -> int:
-        curr_player = self.curr_player()
-        row, col = self.column_limits[move], move
-        self.board[row, col] = curr_player
-        connected_points = 0
-        massimo = 0
-        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
-        for crow in range(row - 3, row + 4):
-            if crow < self.nrow and crow >= 0:
-                if self.board[crow, col] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-        massimo = max(massimo, connected_points)
-        connected_points = 0
-        for ccol in range(col - 3, col + 4):
-            if ccol < self.ncol and ccol >= 0:
-                if self.board[row, ccol] == curr_player:
-                    connected_points += 1
-                    if connected_points == 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-
-        massimo = max(massimo, connected_points)
-        connected_points = 0
-
-        #!! 2 CICLI FOR SONO DA TOGLIERE, MA AL MOMENTO NON SO QUALI
-
-        for d in range(-3, 4):
-            if col + d < self.ncol and row + d >= 0 and row + d < self.nrow and col + d >= 0:
-                if self.board[row + d, col + d] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-
-        massimo = max(massimo, connected_points)
-        connected_points = 0
-
-        for d in range(-3, 4):
-            if row + d < self.nrow and col - d >= 0 and col - d < self.ncol and row + d >= 0:
-                if self.board[row + d, col - d] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-
-        self.board[row, col] = EMPTY
-        massimo = max(massimo, connected_points)
-        return massimo*curr_player
-
-    def eval_2(self) -> float:
-        if self.has_ended:
-            return float("+inf")*self.has_ended
-        curr_player = self.curr_player()
-        tot = 0
-        legal_Moves = self.legal_moves()
-        values = [0, 1, 2, 5]
-
-        for col in legal_Moves:
-            tmp = self.num_connected(col)
-            tot += values[abs(tmp) - 1]*curr_player
-
-        # print(legal_Moves)
-        values = [0, 0, 0, 4]
-        self.turn += 1
-        curr_player = self.curr_player()
-        for col in self.legal_moves():
-            tot += values[abs(self.num_connected(col)) - 1]*curr_player
-        self.turn -= 1
-
-        return tot
 
     def eval_chiorri(self) -> float:
         if self.has_ended:
@@ -882,80 +807,7 @@ class Board:
 
         return best, value
 
-    def cached_alphabeta(self,
-                         depth: int,
-                         alpha: float = float('-inf'),
-                         beta: float = float('inf'),
-                         evaluation=(lambda x: 0),
-                         cutoff_depth: int = 5,
-                         table: dict = None
-                         ) -> tuple[int, float]:
-
-        if table is None:
-            table = {}
-
-        if depth == cutoff_depth:
-            s = str(self.board)
-            if s in table:
-                return self.history[-1], table[s]
-
-        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
-            val = evaluation(self)
-            if depth == cutoff_depth:
-                table[str(self.board)] = val
-            return self.history[-1], val
-
-        moves = self.legal_moves()
-
-        if moves is None or len(moves) == 0:
-            if depth == cutoff_depth:
-                table[str(self.board)] = 0
-            return self.history[-1], 0
-
-        curr_pl = self.curr_player()
-        best = moves[0]
-
-        if curr_pl == MAXPLAYER:
-            value = float('-inf')
-            for move in moves:
-
-                self.make_move(move)
-                _, score = self.cached_alphabeta(
-                    depth - 1, alpha, beta, evaluation=evaluation, table=table
-                )
-                self.undo_move()
-
-                if score > value:
-                    value = score
-                    best = move
-
-                alpha = max(alpha, value)
-                if alpha > beta:
-                    break
-        else:
-            value = float('inf')
-            for move in moves:
-
-                self.make_move(move)
-                _, score = self.cached_alphabeta(
-                    depth - 1, alpha, beta, evaluation=evaluation, table=table
-                )
-                self.undo_move()
-
-                if score < value:
-                    value = score
-                    best = move
-
-                beta = min(beta, value)
-                if alpha > beta:
-                    break
-
-        if depth == cutoff_depth:
-            table[str(self.board)] = value
-
-        return best, value
-
-    def gen_move(self, base_depth: int = 8, eur=(lambda x: x.eval_chiorri())):
+    def gen_move(self, base_depth: int = 7, eur=(lambda x: x.eval_chiorri())):
         depth = (base_depth
                  if self.turn <= 15
                  else min(base_depth + int(self.turn - 15), 30)
@@ -975,6 +827,7 @@ if __name__ == "__main__":
     # b.make_move_sequence([4, 3, 3, 3, 3, 3, 2, 3, 4, 2, 2, 2, 1, 1, 4, 4, 4, 2, 2, 4])
 
     game_board = Board()
+    game_board.gui()
     player = str(input("Select player (MAX or MIN): "))
     while player != "MAX" and player != "MIN" and player != "max" and player != "min":
         player = str(input("Select player (MAX or MIN): "))
@@ -983,8 +836,7 @@ if __name__ == "__main__":
 
     while game_board.has_ended == 0:
 
-        print(f"Move({game_board.turn}) Plays: {
-              game_board.curr_player_name()}\n")
+        print(f"Move({game_board.turn}) Plays: {game_board.curr_player_name()}\n")
 
         if game_board.curr_player() == player:
             print(game_board, "\n")
