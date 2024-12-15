@@ -963,11 +963,11 @@ class Board:
                      if self.turn <= 15
                      else min(base_depth + 10 + (self.turn - 15), 30)
                      )
-        move, _ = self.alphabeta(
+        move, val = self.alphabeta(
             depth,
             evaluation=eur
         )
-        print(val)
+        print(f"Evaluation: {val}")
         return move
 
 
