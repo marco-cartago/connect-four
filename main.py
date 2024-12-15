@@ -269,7 +269,7 @@ class Board:
 
         return tot
 
-    def eval_Chiorri(self) -> float:
+    def eval_chiorri(self) -> float:
         if self.has_ended:
             return float("+inf")*self.has_ended
         return self.save_value_table
@@ -949,9 +949,13 @@ class Board:
 
         return best, value
 
-    def gen_move(self):
-        # depth =
-        pass
+    def gen_move(self, eur=(lambda x: x.eval_chiorri())):
+        depth = 7 if self.turn >= 15 else min(17 + (self.turn - 15), 30)
+        move, _ = self.alphabeta(
+            depth,
+            evaluation=eur
+        )
+        return move
 
 
 if __name__ == "__main__":
@@ -974,11 +978,7 @@ if __name__ == "__main__":
         print(prova.turn)
         if prova.curr_player() == MAXPLAYER:
             start = time.time()
-            mossa, value = prova.cached_alphabeta(
-                8,
-                evaluation=(lambda x: x.eval_cartago()),
-                cutoff_depth=5
-            )
+            mossa = prova.gen_move()
             end = time.time()
             print(f"Elapsed {end - start}")
             prova.make_move(mossa)
