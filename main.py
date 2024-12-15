@@ -34,7 +34,7 @@ class Board:
 
     def __str__(self):
         board_str = ''
-        def sym(x): return 'O' if x == MAXPLAYER else 'X'
+        def sym(x): return 'O' if x == MAXPLAYER else '#'
         print(" 0 1 2 3 4 5 6")
         for row in self.board[::-1]:
             row_str = '|' + '|'.join((sym(cell)) if cell !=
@@ -184,6 +184,8 @@ class Board:
         self.turn -= 1
         # Restore the previous situation
         self.has_ended = EMPTY
+
+    # Heuristics
 
     def num_connected(self, move) -> int:
         curr_player = self.curr_player()
@@ -766,15 +768,32 @@ class Board:
         elif self.has_ended == 2:
             return 0
         else:
-            move = self.history[-1]
-            row = self.column_limits[move] - 1
-            map_val = map[row, move]
+            # Ritorno quante connessioni ha fatto l'avversario nell'ultimo intorno della mossa
+            mboard = self.board * [1, 1.5, 2, 2.5, 2, 1.5, 1]
+            # Diagonal sums
+            diagonal_sums = []
+            for offset in range(-self.nrow + 1, self.ncol):
+                diagonal = np.diagonal(mboard, offset=offset)
+                diagonal_sums.append(np.sum(diagonal))
+            # Antidiagonal sums
+            antidiagonal_sums = []
+            flipped = np.fliplr(mboard)
+            for offset in range(-self.nrow + 1, self.ncol):
+                diagonal = np.diagonal(flipped, offset=offset)
+                antidiagonal_sums.append(np.sum(diagonal))
+            # Row sum
+            rscore = mboard.sum(axis=0)
+            # Column sum
+            cscore = mboard.sum(axis=1)
+            # Combination
+            score = (np.max(cscore) + np.min(cscore) +
+                     np.max(rscore) + np.min(rscore) +
+                     np.max(diagonal_sums) + np.min(diagonal_sums) +
+                     np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
 
-            self.undo_move()
-            conn_val = self.num_connected(move)
-            self.make_move(move)
+            return score
 
-            return - conn_val + (map_val / 20) * self.curr_player()
+    # Tree search
 
     def minimax(self, depth) -> tuple[int, float]:
         # Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
@@ -785,7 +804,7 @@ class Board:
             return self.history[-1], 0
 
         curr_pl = self.curr_player()
-        best = self.legal_moves()[0]
+        best = self.legal_moves()[3]
 
         if curr_pl == MAXPLAYER:
             a = float("-inf")
@@ -807,10 +826,15 @@ class Board:
                 self.undo_move()
         return best, a
 
-    def alphabeta(self, depth, alpha=float('-inf'), beta=float('inf')) -> tuple[int, float]:
+    def alphabeta(self,
+                  depth,
+                  alpha=float('-inf'),
+                  beta=float('inf'),
+                  evaluation=(lambda x: 0)
+                  ) -> tuple[int, float]:
 
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
-            return self.history[-1], self.eval_cartago()
+            return self.history[-1], evaluation(self)
 
         moves = self.legal_moves()
 
@@ -824,7 +848,8 @@ class Board:
             value = float('-inf')
             for move in moves:
                 self.make_move(move)
-                _, score = self.alphabeta(depth - 1, alpha, beta)
+                _, score = self.alphabeta(
+                    depth - 1, alpha, beta, evaluation=evaluation)
                 if score > value:
                     value = score
                     best = move
@@ -836,7 +861,8 @@ class Board:
             value = float('inf')
             for move in moves:
                 self.make_move(move)
-                _, score = self.alphabeta(depth - 1, alpha, beta)
+                _, score = self.alphabeta(
+                    depth - 1, alpha, beta, evaluation=evaluation)
                 if score < value:
                     value = score
                     best = move
@@ -846,6 +872,83 @@ class Board:
                     break
 
         return best, value
+
+    def cached_alphabeta(self,
+                         depth: int,
+                         alpha: float = float('-inf'),
+                         beta: float = float('inf'),
+                         evaluation=(lambda x: 0),
+                         cutoff_depth: int = 5,
+                         table: dict = None
+                         ) -> tuple[int, float]:
+
+        if table is None:
+            table = {}
+
+        if depth >= cutoff_depth:
+            s = str(self.board)
+            if s in table:
+                return self.history[-1], table[s]
+
+        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
+            val = evaluation(self)
+            if depth >= cutoff_depth:
+                table[str(self.board)] = val
+            return self.history[-1], val
+
+        moves = self.legal_moves()
+
+        if moves is None or len(moves) == 0:
+            if depth > cutoff_depth:
+                table[str(self.board)] = 0
+            return self.history[-1], 0
+
+        curr_pl = self.curr_player()
+        best = moves[0]
+
+        if curr_pl == MAXPLAYER:
+            value = float('-inf')
+            for move in moves:
+
+                self.make_move(move)
+                _, score = self.cached_alphabeta(
+                    depth - 1, alpha, beta, evaluation=evaluation, table=table
+                )
+                self.undo_move()
+
+                if score > value:
+                    value = score
+                    best = move
+
+                alpha = max(alpha, value)
+                if alpha > beta:
+                    break
+        else:
+            value = float('inf')
+            for move in moves:
+
+                self.make_move(move)
+                _, score = self.cached_alphabeta(
+                    depth - 1, alpha, beta, evaluation=evaluation, table=table
+                )
+                self.undo_move()
+
+                if score < value:
+                    value = score
+                    best = move
+
+                beta = min(beta, value)
+                if alpha > beta:
+                    break
+
+        if depth >= cutoff_depth:
+            table[str(self.board)] = value
+
+        return best, value
+
+    def gen_move(self):
+        # depth =
+        pass
 
 
 if __name__ == "__main__":
@@ -865,14 +968,29 @@ if __name__ == "__main__":
     prova = Board()
     while prova.has_ended == 0:
         # print(prova)
-        # if prova.curr_player() == MAXPLAYER:
-        #     move = int(input("[0-6]:"))
-        #     prova.make_move(move)
-        # else:
-        mossa, value = prova.alphabeta(8)
-        # print(prova.num_connected(mossa))
-        prova.make_move(mossa)
-        print(value)
+        print(prova.turn)
+        if prova.curr_player() == MAXPLAYER:
+            start = time.time()
+            mossa, value = prova.cached_alphabeta(
+                8,
+                evaluation=(lambda x: x.eval_cartago()),
+                cutoff_depth=5
+            )
+            end = time.time()
+            print(f"Elapsed {end - start}")
+            prova.make_move(mossa)
+        else:
+            start = time.time()
+            mossa, value = prova.alphabeta(8,
+                                           evaluation=(
+                                               lambda x: x.eval_cartago())
+                                           )
+            prova.make_move(mossa)
+            end = time.time()
+            print(f"Elapsed {end - start}")
+            # print(value)
 
-    print(prova)
-    print(prova.has_ended)
+    # print(prova)
+    print()
+    print("MAX" if prova.has_ended == 1 else (
+        "NONE" if prova.has_ended == 2 or prova.has_ended == 0 else "MIN"))
