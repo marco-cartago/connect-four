@@ -159,6 +159,43 @@ class Board:
         # Restore the previous situation
         self.has_ended = EMPTY
 
+    def eventPerson(self, event, window):
+        self.make_move(event.x//100)
+        window.destroy()
+        self.gui(False)
+        return
+
+    def gui(self, turn):
+        if turn == False:
+            mossa = self.gen_move(
+                base_depth=8,
+                eur=(lambda x: x.eval_position())
+            )
+            self.make_move(mossa)
+            self.gui(True)
+            return
+        root = tk.Tk()
+        root.title("Connect Four")
+        root.geometry("700x600")
+        root.configure(bg="blue")
+        canvas = tk.Canvas(root, bg="blue", highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
+        if self.has_ended == 0:
+            canvas.bind("<Button-1>", lambda event: self.eventPerson(event, root))
+        #Credo che metterò qui per la parte di dove inserire
+        for i, j in enumerate(self.board[::-1]):
+            for k, l in enumerate(j):
+                x = 50 + k * 100
+                y = 50 + i * 100
+                if l == 1:
+                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="red", outline="red")
+                elif l == -1:
+                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="yellow", outline="yellow")
+                else:
+                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="white", outline="white")
+        root.mainloop()
+        return
+
     # Heuristics
 
     def eval_position(self) -> float:
@@ -816,33 +853,33 @@ class Board:
 if __name__ == "__main__":
 
     game_board = Board()
-    game_board.gui()
-    player = str(input("Select player (MAX or MIN): "))
-    while player != "MAX" and player != "MIN" and player != "max" and player != "min":
-        player = str(input("Select player (MAX or MIN): "))
+    game_board.gui(True)
+    # player = str(input("Select player (MAX or MIN): "))
+    # while player != "MAX" and player != "MIN" and player != "max" and player != "min":
+    #     player = str(input("Select player (MAX or MIN): "))
 
-    player = MAXPLAYER if player == "MAX" or player == "max" else MINPLAYER
+    # player = MAXPLAYER if player == "MAX" or player == "max" else MINPLAYER
 
-    while game_board.has_ended == 0:
+    # while game_board.has_ended == 0:
 
-        print(f"Move({game_board.turn}) Plays: {game_board.curr_player_name()}\n")
+    #     print(f"Move({game_board.turn}) Plays: {game_board.curr_player_name()}\n")
 
-        if game_board.curr_player() == player:
-            print(game_board, "\n")
-            lm = game_board.legal_moves()
-            move = int(input(f"{lm}> "))
-            while move not in lm:
-                move = input(f"{lm}> ")
-            game_board.make_move(move)
-        else:
-            start = time.time()
-            mossa = game_board.gen_move(base_depth=8)
-            game_board.make_move(mossa)
-            end = time.time()
-            # print(f"Elapsed: {end - start}")
+    #     if game_board.curr_player() == player:
+    #         print(game_board, "\n")
+    #         lm = game_board.legal_moves()
+    #         move = int(input(f"{lm}> "))
+    #         while move not in lm:
+    #             move = input(f"{lm}> ")
+    #         game_board.make_move(move)
+    #     else:
+    #         start = time.time()
+    #         mossa = game_board.gen_move(base_depth=8)
+    #         game_board.make_move(mossa)
+    #         end = time.time()
+    #         # print(f"Elapsed: {end - start}")
 
-    print(game_board)
+    # print(game_board)
 
-    print()
+    # print()
     print("MAX WON" if game_board.has_ended == 1 else (
         "DRAW"if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN WON"))
