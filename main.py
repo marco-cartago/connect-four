@@ -439,8 +439,7 @@ class Board:
                 self.undo_move()
 
                 if depth == DEBUG_DEPTH and debug:
-                    print(f"{move}:{new_val} player:{
-                          self.curr_player_name()} ")
+                    print(f"{move}:{new_val} player:{self.curr_player_name()} ")
 
                 if new_val > best_val:
                     best_val = new_val
@@ -488,7 +487,7 @@ class Board:
                 self.undo_move()
 
                 if new_val >= best_val:
-                    best_val = new_value
+                    best_val = new_val
                     best_move = move
 
                 alpha = max(alpha, new_val)  # update lower bound
@@ -504,7 +503,7 @@ class Board:
                 self.undo_move()
                 beta = min(beta, new_val) # Update upper bound
                 if beta < alpha: break
-
+        return (best_move, best_val)
 
 if __name__ == "__main__":
     # b = Board()
@@ -526,7 +525,7 @@ if __name__ == "__main__":
         #     test.make_move(int(x))
         # else:
         DEBUG_DEPTH = 3
-        move = test.alphabeta(DEBUG_DEPTH)[0]
+        move = test.minimax(DEBUG_DEPTH)[0]
         print("Played: ", move, "player", test.curr_player_name())
         test.make_move(move)
         print(test)
