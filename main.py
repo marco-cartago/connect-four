@@ -761,13 +761,7 @@ class Board:
         return max_score - min_score
 
     def eval_brullen(self):
-        return self.threats_eval()  # + self.connections_eval()
-
-    def eval_caco(self) -> float:
-        if self.has_ended != 2:
-            return self.has_ended
-        else:
-            return 0
+        return self.threats_eval() + self.connections_eval()
 
     def eval_cartago(self) -> float:
         if self.has_ended == 1:
@@ -780,16 +774,16 @@ class Board:
             # Ritorno quante connessioni ha fatto l'avversario nell'ultimo intorno della mossa
             mboard = self.board * [1, 1.5, 2, 2.5, 2, 1.5, 1]
             # Diagonal sums
-            # diagonal_sums = []
-            # for offset in range(-self.nrow + 1, self.ncol):
-            #     diagonal = np.diagonal(mboard, offset=offset)
-            #     diagonal_sums.append(np.sum(diagonal))
-            # # Antidiagonal sums
-            # antidiagonal_sums = []
-            # flipped = np.fliplr(mboard)
-            # for offset in range(-self.nrow + 1, self.ncol):
-            #     diagonal = np.diagonal(flipped, offset=offset)
-            #     antidiagonal_sums.append(np.sum(diagonal))
+            diagonal_sums = []
+            for offset in range(-self.nrow + 1, self.ncol):
+                diagonal = np.diagonal(mboard, offset=offset)
+                diagonal_sums.append(np.sum(diagonal))
+            # Antidiagonal sums
+            antidiagonal_sums = []
+            flipped = np.fliplr(mboard)
+            for offset in range(-self.nrow + 1, self.ncol):
+                diagonal = np.diagonal(flipped, offset=offset)
+                antidiagonal_sums.append(np.sum(diagonal))
             # Row sum
             rscore = mboard.sum(axis=0)
             # Column sum
@@ -957,43 +951,35 @@ class Board:
 
     def gen_move(self, base_depth: int = 7, eur=(lambda x: x.eval_chiorri())):
         depth = (base_depth
-                 if self.turn >= 15
-                 else min(base_depth + 10 + (self.turn - 15), 30)
+                 if self.turn <= 12
+                 else min(base_depth + (self.turn - 12), 30)
                  )
-        move, _ = self.alphabeta(
+        move, val = self.alphabeta(
             depth,
             evaluation=eur
         )
+        print(val)
         return move
 
 
 if __name__ == "__main__":
-    # b = Board()
-    # b.make_move_sequence(
-    #     [1, 2, 0, 1, 5, 2, 1, 5, 3, 1, 4, 5, 6, 1, 3, 2, 4, 5, 6],
-    #     verbose=True)
-    # print(b.has_ended)
-    # print(b.legal_moves())
-    # print(b.column_limits)
-    # print(b)
-    # b = Board()
-    # b.make_move_sequence([0, 1, 2, 0, 1, 0, 0, 5, 1, 5, 2, 5, 3], verbose=True)
-    # print(b)
-    # print(b.has_ended)
 
     prova = Board()
 
     while prova.has_ended == 0:
+
         print(prova)
         print(prova.turn, prova.curr_player_name())
+
         if prova.curr_player() == MAXPLAYER:
             start = time.time()
             mossa = prova.gen_move(
-                eur=(lambda x: x.eval_caco())
+                eur=(lambda x: x.eval_brullen())
             )
             end = time.time()
             print(f"Elapsed {end - start}")
             prova.make_move(mossa)
+
         else:
             start = time.time()
             mossa = prova.gen_move(
@@ -1002,6 +988,8 @@ if __name__ == "__main__":
             prova.make_move(mossa)
             end = time.time()
             print(f"Elapsed {end - start}")
+
+        print(prova)
 
     # print(prova)
     print()
