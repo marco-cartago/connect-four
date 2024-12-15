@@ -774,25 +774,25 @@ class Board:
             # Ritorno quante connessioni ha fatto l'avversario nell'ultimo intorno della mossa
             mboard = self.board * [1, 1.5, 2, 2.5, 2, 1.5, 1]
             # Diagonal sums
-            diagonal_sums = []
-            for offset in range(-self.nrow + 1, self.ncol):
-                diagonal = np.diagonal(mboard, offset=offset)
-                diagonal_sums.append(np.sum(diagonal))
-            # Antidiagonal sums
-            antidiagonal_sums = []
-            flipped = np.fliplr(mboard)
-            for offset in range(-self.nrow + 1, self.ncol):
-                diagonal = np.diagonal(flipped, offset=offset)
-                antidiagonal_sums.append(np.sum(diagonal))
+            # diagonal_sums = []
+            # for offset in range(-self.nrow + 1, self.ncol):
+            #     diagonal = np.diagonal(mboard, offset=offset)
+            #     diagonal_sums.append(np.sum(diagonal))
+            # # Antidiagonal sums
+            # antidiagonal_sums = []
+            # flipped = np.fliplr(mboard)
+            # for offset in range(-self.nrow + 1, self.ncol):
+            #     diagonal = np.diagonal(flipped, offset=offset)
+            #     antidiagonal_sums.append(np.sum(diagonal))
             # Row sum
             rscore = mboard.sum(axis=0)
             # Column sum
             cscore = mboard.sum(axis=1)
             # Combination
             score = (np.max(cscore) + np.min(cscore) +
-                     np.max(rscore) + np.min(rscore) +
-                     np.max(diagonal_sums) + np.min(diagonal_sums) +
-                     np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
+                     np.max(rscore) + np.min(rscore))
+            #  np.max(diagonal_sums) + np.min(diagonal_sums) +
+            #  np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
 
             return score
 
@@ -888,21 +888,21 @@ class Board:
         if table is None:
             table = {}
 
-        if depth >= cutoff_depth:
+        if depth == cutoff_depth:
             s = str(self.board)
             if s in table:
                 return self.history[-1], table[s]
 
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
             val = evaluation(self)
-            if depth >= cutoff_depth:
+            if depth == cutoff_depth:
                 table[str(self.board)] = val
             return self.history[-1], val
 
         moves = self.legal_moves()
 
         if moves is None or len(moves) == 0:
-            if depth > cutoff_depth:
+            if depth == cutoff_depth:
                 table[str(self.board)] = 0
             return self.history[-1], 0
 
@@ -944,7 +944,7 @@ class Board:
                 if alpha > beta:
                     break
 
-        if depth >= cutoff_depth:
+        if depth == cutoff_depth:
             table[str(self.board)] = value
 
         return best, value
@@ -954,8 +954,9 @@ class Board:
                  if self.turn >= 15
                  else min(base_depth + 10 + (self.turn - 15), 30)
                  )
-        move, _ = self.alphabeta(
+        move, _ = self.cached_alphabeta(
             depth,
+            cutoff_depth=(depth - 4),
             evaluation=eur
         )
         return move
@@ -989,14 +990,12 @@ if __name__ == "__main__":
             prova.make_move(mossa)
         else:
             start = time.time()
-            mossa, value = prova.alphabeta(
-                7,
-                evaluation=(lambda x: x.eval_cartago())
+            mossa = prova.gen_move(
+                eur=(lambda x: x.eval_cartago())
             )
             prova.make_move(mossa)
             end = time.time()
             print(f"Elapsed {end - start}")
-            # print(value)
 
     # print(prova)
     print()
