@@ -1,4 +1,4 @@
 # Connect four
 
-
-A little connect four project for my university course on artificial intelligence.
+A little connect four implemtation for my university course on introduction to artificial intelligence.
+A single megalithc python file.
