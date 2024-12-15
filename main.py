@@ -761,7 +761,7 @@ class Board:
         return max_score - min_score
 
     def eval_brullen(self):
-        return connections_eval() + threats_eval()
+        return self.connections_eval() + self.threats_eval()
 
     def eval_cartago(self) -> float:
         if self.has_ended == 1:
