@@ -27,10 +27,12 @@ class Board:
 
         self.turn: int = 0
         self.has_ended: int = 0
+
         self.history: list[int] = []
+        self.save_value_table: float = 0
+
         self.board = np.zeros(shape=(nrow, ncol), dtype=np.int64)
         self.column_limits = np.zeros(shape=ncol, dtype=np.int64)
-        self.save_value_table = 0
 
     def __str__(self):
         board_str = ''
@@ -798,6 +800,9 @@ class Board:
     def gen_move(self,
                  base_depth: int = 8,
                  eur=(lambda x: x.eval_position())):
+        """
+        Returns the move chosen by alphabeta pruning. 
+        """
 
         depth = (base_depth
                  if self.turn <= 10
