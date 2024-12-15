@@ -1,3 +1,9 @@
+"""
+Bortolussi Lorenzo
+Cartago Marco
+Chiorri Marco
+"""
+
 import numpy as np
 import time
 import tkinter as tk
@@ -183,18 +189,22 @@ class Board:
         canvas = tk.Canvas(root, bg="blue", highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True)
         if self.has_ended == 0:
-            canvas.bind("<Button-1>", lambda event: self.eventPerson(event, root))
-        #Credo che metterò qui per la parte di dove inserire
+            canvas.bind(
+                "<Button-1>", lambda event: self.eventPerson(event, root))
+        # Credo che metterò qui per la parte di dove inserire
         for i, j in enumerate(self.board[::-1]):
             for k, l in enumerate(j):
                 x = 50 + k * 100
                 y = 50 + i * 100
                 if l == 1:
-                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="red", outline="red")
+                    canvas.create_oval(x - 33, y - 33, x +
+                                       33, y + 33, fill="red", outline="red")
                 elif l == -1:
-                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="yellow", outline="yellow")
+                    canvas.create_oval(x - 33, y - 33, x + 33,
+                                       y + 33, fill="yellow", outline="yellow")
                 else:
-                    canvas.create_oval(x - 33, y - 33, x + 33, y + 33, fill="white", outline="white")
+                    canvas.create_oval(x - 33, y - 33, x + 33,
+                                       y + 33, fill="white", outline="white")
         root.mainloop()
         return
 
