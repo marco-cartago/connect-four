@@ -6,7 +6,7 @@ MAXPLAYER: int = 1
 EMPTY: int = 0
 
 # Se self.has_ended è uguale a 2 allora è patta
-map = np.array([[3, 4, 5, 7, 5, 4, 3],
+MAP = np.array([[3, 4, 5, 7, 5, 4, 3],
                 [4, 6, 8, 10, 8, 6, 4],
                 [5, 7, 11, 13, 11, 7, 5],
                 [5, 7, 11, 13, 11, 7, 5],
@@ -82,13 +82,12 @@ class Board:
         row, col = self.column_limits[move], move
         self.board[row, col] = curr_player
         self.column_limits[col] += 1
-        self.save_value_table += map[row, col]*curr_player
+        self.save_value_table += MAP[row, col]*curr_player
         self.history.append(move)
         self.turn += 1
 
         # Verticale
         connected_points = 0
-        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
         for crow in range(row - 3, row + 4):
             if crow < self.nrow and crow >= 0:
                 if self.board[crow, col] == curr_player:
@@ -141,32 +140,6 @@ class Board:
         if self.legal_moves() is None:
             self.has_ended = 2
 
-    def make_move_sequence(self, move_list: list[int], verbose: bool = False) -> None:
-        """
-        Plays a sequence of moves on the board
-        """
-        for move in move_list:
-            if move in self.legal_moves():
-                if verbose:
-                    print(self)
-                for m in self.legal_moves():
-                    self.make_move(m)
-                    print(f"move {m} -> {self.has_ended}")
-                    self.undo_move()
-                self.make_move(move)
-
-                if self.has_ended != 0:
-                    break
-            else:
-                raise Exception(f"Illegl move {move}")
-
-    def undo_move_sequence(self, move_num: int) -> None:
-        """
-        Undoes a sequence of moves on the board
-        """
-        for _ in range(move_num):
-            self.undo_move()
-
     def undo_move(self) -> None:
         """
         Undoes the last move
@@ -174,7 +147,7 @@ class Board:
         last_move = self.history.pop()
         edit_row, edit_col = self.column_limits[last_move] - 1, last_move
 
-        self.save_value_table -= map[edit_row,
+        self.save_value_table -= MAP[edit_row,
                                      edit_col]*self.board[edit_row, edit_col]
         # Remove the disc from the board
         self.board[edit_row, edit_col] = EMPTY
@@ -187,105 +160,39 @@ class Board:
 
     # Heuristics
 
-    def num_connected(self, move) -> int:
-        curr_player = self.curr_player()
-        row, col = self.column_limits[move], move
-        self.board[row, col] = curr_player
-        connected_points = 0
-        massimo = 0
-        # Maybe we can check only the bottom for, because when we put a tile we put on the top so everthing over should be 0
-        for crow in range(row - 3, row + 4):
-            if crow < self.nrow and crow >= 0:
-                if self.board[crow, col] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-        massimo = max(massimo, connected_points)
-        connected_points = 0
-        for ccol in range(col - 3, col + 4):
-            if ccol < self.ncol and ccol >= 0:
-                if self.board[row, ccol] == curr_player:
-                    connected_points += 1
-                    if connected_points == 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-
-        massimo = max(massimo, connected_points)
-        connected_points = 0
-
-        #!! 2 CICLI FOR SONO DA TOGLIERE, MA AL MOMENTO NON SO QUALI
-
-        for d in range(-3, 4):
-            if col + d < self.ncol and row + d >= 0 and row + d < self.nrow and col + d >= 0:
-                if self.board[row + d, col + d] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-
-        massimo = max(massimo, connected_points)
-        connected_points = 0
-
-        for d in range(-3, 4):
-            if row + d < self.nrow and col - d >= 0 and col - d < self.ncol and row + d >= 0:
-                if self.board[row + d, col - d] == curr_player:
-                    connected_points += 1
-                    if connected_points >= 4:
-                        break
-                else:
-                    massimo = max(massimo, connected_points)
-                    connected_points = 0
-
-        self.board[row, col] = EMPTY
-        massimo = max(massimo, connected_points)
-        return massimo*curr_player
-
-    def eval_2(self) -> float:
-        if self.has_ended:
-            return float("+inf")*self.has_ended
-        curr_player = self.curr_player()
-        tot = 0
-        legal_Moves = self.legal_moves()
-        values = [0, 1, 2, 5]
-
-        for col in legal_Moves:
-            tmp = self.num_connected(col)
-            tot += values[abs(tmp) - 1]*curr_player
-
-        # print(legal_Moves)
-        values = [0, 0, 0, 4]
-        self.turn += 1
-        curr_player = self.curr_player()
-        for col in self.legal_moves():
-            tot += values[abs(self.num_connected(col)) - 1]*curr_player
-        self.turn -= 1
-
-        return tot
-
-    def eval_chiorri(self) -> float:
+    def eval_position(self) -> float:
+        """
+        Uses a precalculated value that is updated with each move.
+        Closely related to the nummber of ways one can win in that square.
+        """
         if self.has_ended:
             return float("+inf")*self.has_ended
         return self.save_value_table
 
     def eval_possibilities(self) -> float:
-        # Allora, più o meno controllo ogni possibile mossa dove formo una riga e se quello dopo è una casella vuota allora va bene, altrimenti non va bene
-        # Questo solamente per quando posso formare 3 o 2, non mi importa quando formo 1
-        # Se formo 4, ovviamente ritorno infinito*curr_player
-        # Quindi se vedo 3 in fila e quello prima o quello dopo sono liberi, è un'ottima posizione
-        # Se vedo 2 in fila la situazione diventa più spinosa, perché devo controllare o 2 avanti, o 2 indietro o 1 avanti e 1 indietro
-        # Conto che sia meglio portare me in una situazione vantaggiosa che mettere in difficoltà l'avversario
-        # In futuro potrei fare una versione che controlla anche tra quante mosse potrei arrivare alla configurazione desiderata, dove se è 2 non conviene giocare la mossa di solito
+        """
+        Allora, più o meno controllo ogni possibile mossa dove formo una riga e se quello dopo è una 
+        casella vuota allora va bene, altrimenti non va bene. 
+        Questo solamente per quando posso formare 3 o 2, non mi importa quando formo 1. 
 
-        # Adesso mi manca da pensare: controllo per ogni mossa mia anche quella avversaria o no? O semplicemente conto come se l'avversario stia per giocare ma ci tolgo 1 (/lo setto a 3 se >= 4) perché non è ancora così pericoloso?
-        # Al momento farei solamente il secondo, poi in caso vedo come funziona
-        # Iniziamo con controllare solo per me
+
+        Se formo 4, ovviamente ritorno infinito*curr_player
+        Quindi se vedo 3 in fila e quello prima o quello dopo sono liberi, è un'ottima posizione
+
+
+        Se vedo 2 in fila la situazione diventa più spinosa, perché devo controllare o 2 avanti, 
+        o 2 indietro o 1 avanti e 1 indietro.
+
+
+        Conto che sia meglio portare me in una situazione vantaggiosa che mettere in difficoltà 
+        l'avversario. In futuro potrei fare una versione che controlla anche tra quante mosse potrei 
+        arrivare alla configurazione desiderata, dove se è 2 non conviene giocare la mossa di solito.
+
+        Adesso mi manca da pensare: controllo per ogni mossa mia anche quella avversaria o no? 
+        O semplicemente conto come se l'avversario stia per giocare ma ci 
+        tolgo 1 (/lo setto a 3 se >= 4) perché non è ancora così pericoloso?
+
+        """
         curr_player = self.curr_player()
         if self.legal_moves() is None or len(self.legal_moves()) == 0:
             return 0
@@ -763,7 +670,7 @@ class Board:
     def eval_brullen(self):
         return self.threats_eval() + self.connections_eval()
 
-    def eval_caco(self) -> float:
+    def eval_simple(self) -> float:
         if self.has_ended != 2:
             return self.has_ended
         else:
@@ -796,16 +703,19 @@ class Board:
             cscore = mboard.sum(axis=1)
             # Combination
             score = (np.max(cscore) + np.min(cscore) +
-                     np.max(rscore) + np.min(rscore))
-            #  np.max(diagonal_sums) + np.min(diagonal_sums) +
-            #  np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
+                     np.max(rscore) + np.min(rscore) +
+                     np.max(diagonal_sums) + np.min(diagonal_sums) +
+                     np.max(antidiagonal_sums) + np.min(antidiagonal_sums))
 
             return score
 
     # Tree search
 
     def minimax(self, depth) -> tuple[int, float]:
-        # Penso che farò un altro caso in cui depth <= 0, dove calcolerò un euristica ma per ora
+        """
+        Minimax!
+        """
+
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0 or len(self.legal_moves()) == 0:
             return self.history[-1], self.eval_possibilities() + self.eval_Chiorri()
 
@@ -841,6 +751,9 @@ class Board:
                   beta=float('inf'),
                   evaluation=(lambda x: 0)
                   ) -> tuple[int, float]:
+        """
+        Minimax with alphabeta pruning!
+        """
 
         if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
             return self.history[-1], evaluation(self)
@@ -882,97 +795,24 @@ class Board:
 
         return best, value
 
-    def cached_alphabeta(self,
-                         depth: int,
-                         alpha: float = float('-inf'),
-                         beta: float = float('inf'),
-                         evaluation=(lambda x: 0),
-                         cutoff_depth: int = 5,
-                         table: dict = None
-                         ) -> tuple[int, float]:
+    def gen_move(self,
+                 base_depth: int = 8,
+                 eur=(lambda x: x.eval_position())):
 
-        if table is None:
-            table = {}
-
-        if depth == cutoff_depth:
-            s = str(self.board)
-            if s in table:
-                return self.history[-1], table[s]
-
-        if self.has_ended == 1 or self.has_ended == -1 or depth <= 0:
-            val = evaluation(self)
-            if depth == cutoff_depth:
-                table[str(self.board)] = val
-            return self.history[-1], val
-
-        moves = self.legal_moves()
-
-        if moves is None or len(moves) == 0:
-            if depth == cutoff_depth:
-                table[str(self.board)] = 0
-            return self.history[-1], 0
-
-        curr_pl = self.curr_player()
-        best = moves[0]
-
-        if curr_pl == MAXPLAYER:
-            value = float('-inf')
-            for move in moves:
-
-                self.make_move(move)
-                _, score = self.cached_alphabeta(
-                    depth - 1, alpha, beta, evaluation=evaluation, table=table
-                )
-                self.undo_move()
-
-                if score > value:
-                    value = score
-                    best = move
-
-                alpha = max(alpha, value)
-                if alpha > beta:
-                    break
-        else:
-            value = float('inf')
-            for move in moves:
-
-                self.make_move(move)
-                _, score = self.cached_alphabeta(
-                    depth - 1, alpha, beta, evaluation=evaluation, table=table
-                )
-                self.undo_move()
-
-                if score < value:
-                    value = score
-                    best = move
-
-                beta = min(beta, value)
-                if alpha > beta:
-                    break
-
-        if depth == cutoff_depth:
-            table[str(self.board)] = value
-
-        return best, value
-
-    def gen_move(self, base_depth: int = 8, eur=(lambda x: x.eval_chiorri())):
         depth = (base_depth
-                 if self.turn <= 15
-                 else min(base_depth + int(self.turn - 15), 30)
+                 if self.turn <= 10
+                 else min(base_depth + int((self.turn - 10)/2), 30)
                  )
-        move, val = self.alphabeta(
+
+        move, _ = self.alphabeta(
             depth,
             evaluation=eur
         )
-        # print(f"Depth {depth}")
-        # print(f"Evaluation: {val}")
+
         return move
 
 
 if __name__ == "__main__":
-
-    # b = Board()
-    # b.make_move_sequence([4, 3, 3, 3, 3, 3, 2, 3, 4, 2, 2, 2, 1, 1, 4, 4, 4, 2, 2, 4])
 
     game_board = Board()
     player = str(input("Select player (MAX or MIN): "))
@@ -993,20 +833,15 @@ if __name__ == "__main__":
             while move not in lm:
                 move = input(f"{lm}> ")
             game_board.make_move(move)
-            print("\n")
         else:
             start = time.time()
-            mossa = game_board.gen_move(
-                base_depth=8,
-                eur=(lambda x: x.eval_chiorri())
-            )
+            mossa = game_board.gen_move(base_depth=8)
             game_board.make_move(mossa)
             end = time.time()
-            print(f"Elapsed: {end - start}")
+            # print(f"Elapsed: {end - start}")
 
     print(game_board)
 
-    # print(prova)
     print()
-    print("MAX" if game_board.has_ended == 1 else (
-        "NONE" if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN"))
+    print("MAX WON" if game_board.has_ended == 1 else (
+        "DRAW"if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN WON"))
