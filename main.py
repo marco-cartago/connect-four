@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import tkinter as tk
 
 MINPLAYER: int = -1
 MAXPLAYER: int = 1
@@ -820,6 +821,7 @@ class Board:
 if __name__ == "__main__":
 
     game_board = Board()
+    game_board.gui()
     player = str(input("Select player (MAX or MIN): "))
     while player != "MAX" and player != "MIN" and player != "max" and player != "min":
         player = str(input("Select player (MAX or MIN): "))
@@ -828,8 +830,7 @@ if __name__ == "__main__":
 
     while game_board.has_ended == 0:
 
-        print(f"Move({game_board.turn}) Plays: {
-              game_board.curr_player_name()}\n")
+        print(f"Move({game_board.turn}) Plays: {game_board.curr_player_name()}\n")
 
         if game_board.curr_player() == player:
             print(game_board, "\n")
