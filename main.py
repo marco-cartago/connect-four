@@ -949,8 +949,11 @@ class Board:
 
         return best, value
 
-    def gen_move(self, eur=(lambda x: x.eval_chiorri())):
-        depth = 7 if self.turn >= 15 else min(17 + (self.turn - 15), 30)
+    def gen_move(self, base_depth: int = 7, eur=(lambda x: x.eval_chiorri())):
+        depth = (base_depth
+                 if self.turn >= 15
+                 else min(base_depth + 10 + (self.turn - 15), 30)
+                 )
         move, _ = self.alphabeta(
             depth,
             evaluation=eur
@@ -974,18 +977,20 @@ if __name__ == "__main__":
 
     prova = Board()
     while prova.has_ended == 0:
-        # print(prova)
-        print(prova.turn)
+        print(prova)
+        print(prova.turn, prova.curr_player_name())
         if prova.curr_player() == MAXPLAYER:
             start = time.time()
-            mossa = prova.gen_move()
+            mossa = prova.gen_move(
+                eur=(lambda x: x.eval_brullen())
+            )
             end = time.time()
             print(f"Elapsed {end - start}")
             prova.make_move(mossa)
         else:
             start = time.time()
             mossa, value = prova.alphabeta(
-                8,
+                7,
                 evaluation=(lambda x: x.eval_cartago())
             )
             prova.make_move(mossa)
