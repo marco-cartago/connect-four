@@ -984,10 +984,10 @@ if __name__ == "__main__":
             prova.make_move(mossa)
         else:
             start = time.time()
-            mossa, value = prova.alphabeta(8,
-                                           evaluation=(
-                                               lambda x: x.eval_cartago())
-                                           )
+            mossa, value = prova.alphabeta(
+                8,
+                evaluation=(lambda x: x.eval_cartago())
+            )
             prova.make_move(mossa)
             end = time.time()
             print(f"Elapsed {end - start}")
