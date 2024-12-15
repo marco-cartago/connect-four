@@ -964,8 +964,8 @@ class Board:
             depth,
             evaluation=eur
         )
-        print(f"Depth {depth}")
-        print(f"Evaluation: {val}")
+        # print(f"Depth {depth}")
+        # print(f"Evaluation: {val}")
         return move
 
 
@@ -974,34 +974,39 @@ if __name__ == "__main__":
     # b = Board()
     # b.make_move_sequence([4, 3, 3, 3, 3, 3, 2, 3, 4, 2, 2, 2, 1, 1, 4, 4, 4, 2, 2, 4])
 
-    prova = Board()
+    game_board = Board()
+    player = str(input("Select player (MAX or MIN): "))
+    while player != "MAX" and player != "MIN" and player != "max" and player != "min":
+        player = str(input("Select player (MAX or MIN): "))
 
-    while prova.has_ended == 0:
+    player = MAXPLAYER if player == "MAX" or player == "max" else MINPLAYER
 
-        print(prova)
-        print(f"Move: {prova.turn} Plays: {prova.curr_player_name()}")
+    while game_board.has_ended == 0:
 
-        if prova.curr_player() == MAXPLAYER:
-            start = time.time()
-            mossa = prova.gen_move(
-                eur=(lambda x: x.eval_chiorri())
-            )
-            end = time.time()
-            print(f"Elapsed: {end - start}")
-            prova.make_move(mossa)
+        print(f"Move({game_board.turn}) Plays: {
+              game_board.curr_player_name()}\n")
 
+        if game_board.curr_player() == player:
+            print(game_board, "\n")
+            lm = game_board.legal_moves()
+            move = int(input(f"{lm}> "))
+            while move not in lm:
+                move = input(f"{lm}> ")
+            game_board.make_move(move)
+            print("\n")
         else:
             start = time.time()
-            mossa = prova.gen_move(
+            mossa = game_board.gen_move(
+                base_depth=8,
                 eur=(lambda x: x.eval_chiorri())
             )
-            prova.make_move(mossa)
+            game_board.make_move(mossa)
             end = time.time()
             print(f"Elapsed: {end - start}")
 
-    print(prova)
+    print(game_board)
 
     # print(prova)
     print()
-    print("MAX" if prova.has_ended == 1 else (
-        "NONE" if prova.has_ended == 2 or prova.has_ended == 0 else "MIN"))
+    print("MAX" if game_board.has_ended == 1 else (
+        "NONE" if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN"))
