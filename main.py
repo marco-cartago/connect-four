@@ -853,8 +853,8 @@ class Board:
         """
 
         depth = (base_depth
-                 if self.turn <= 10
-                 else min(base_depth + int((self.turn - 10)/2), 30)
+                 if self.turn <= 15
+                 else min(base_depth + int((self.turn - 15)/2), 30)
                  )
 
         move, _ = self.alphabeta(
@@ -868,33 +868,43 @@ class Board:
 if __name__ == "__main__":
 
     game_board = Board()
-    game_board.gui(True)
-    # player = str(input("Select player (MAX or MIN): "))
-    # while player != "MAX" and player != "MIN" and player != "max" and player != "min":
-    #     player = str(input("Select player (MAX or MIN): "))
+    x = str(input("Would you like to play with the GUI or in the terminal? (G/T)\n"))
+    while x != "G" and x != "T":
+        x = str(input("Would you like to play with the GUI or in the terminal? (G/T)\n"))
+    if x == "G":
+        player = str(input("Select player (MAX or MIN): "))
+        while player != "MAX" and player != "MIN" and player != "max" and player != "min":
+            player = str(input("Select player (MAX or MIN): "))
+        if player == "MAX" or player == "max":
+            player = True
+        else:
+            player = False
+        game_board.gui(player)
+    else:
+        player = str(input("Select player (MAX or MIN): "))
+        while player != "MAX" and player != "MIN" and player != "max" and player != "min":
+            player = str(input("Select player (MAX or MIN): "))
 
-    # player = MAXPLAYER if player == "MAX" or player == "max" else MINPLAYER
+        player = MAXPLAYER if player == "MAX" or player == "max" else MINPLAYER
 
-    # while game_board.has_ended == 0:
+        while game_board.has_ended == 0:
 
-    #     print(f"Move({game_board.turn}) Plays: {game_board.curr_player_name()}\n")
+            print(f"Move({game_board.turn}) Plays: {game_board.curr_player_name()}\n")
+            if game_board.curr_player() == player:
+                print(game_board, "\n")
+                lm = game_board.legal_moves()
+                move = int(input(f"{lm}> "))
+                while move not in lm:
+                    move = input(f"{lm}> ")
+                game_board.make_move(move)
+            else:
+                start = time.time()
+                mossa = game_board.gen_move(base_depth=8)
+                game_board.make_move(mossa)
+                end = time.time()
+                print(f"Elapsed: {end - start}")
 
-    #     if game_board.curr_player() == player:
-    #         print(game_board, "\n")
-    #         lm = game_board.legal_moves()
-    #         move = int(input(f"{lm}> "))
-    #         while move not in lm:
-    #             move = input(f"{lm}> ")
-    #         game_board.make_move(move)
-    #     else:
-    #         start = time.time()
-    #         mossa = game_board.gen_move(base_depth=8)
-    #         game_board.make_move(mossa)
-    #         end = time.time()
-    #         # print(f"Elapsed: {end - start}")
-
-    # print(game_board)
-
-    # print()
-    print("MAX WON" if game_board.has_ended == 1 else (
-        "DRAW"if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN WON"))
+        print(game_board)
+        
+        print("MAX WON" if game_board.has_ended == 1 else (
+            "DRAW"if game_board.has_ended == 2 or game_board.has_ended == 0 else "MIN WON"))
